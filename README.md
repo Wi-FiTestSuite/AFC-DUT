@@ -1,3 +1,6 @@
+General Information
+-------------------
+
 This repository includes the following source code for AFC DUT Test Harness.
 
 - AFC System Simulator
