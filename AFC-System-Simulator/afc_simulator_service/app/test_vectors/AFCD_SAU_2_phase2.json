@@ -1,0 +1,99 @@
+{
+    "testCaseID": {
+        "unitUnderTest": "AFCD",
+        "purpose": "SAU",
+        "testVector": 2,
+        "phase": 2
+    },
+    "description": "Successful Spectrum update on Inquired Channels",
+    "responses": {
+        "availableSpectrumInquiryResponses": [
+            {
+                "response": {
+                    "responseCode": 0,
+                    "shortDescription": "SUCCESS"
+                },
+                "availableChannelInfo": [
+                    {
+                        "channelCfi": [
+                            65,
+                            69,
+                            73,
+                            77,
+                            81,
+                            85,
+                            89,
+                            93,
+                            133,
+                            153,
+                            157,
+                            161,
+                            165,
+                            169,
+                            173,
+                            177,
+                            181
+                        ],
+                        "globalOperatingClass": 131,
+                        "maxEirp": [
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            27.07,
+                            27.21,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0
+                        ]
+                    },
+                    {
+                        "channelCfi": [
+                            67,
+                            75,
+                            83,
+                            91
+                        ],
+                        "globalOperatingClass": 132,
+                        "maxEirp": [
+                            36.0,
+                            36.0,
+                            36.0,
+                            27.22
+                        ]
+                    },
+                    {
+                        "channelCfi": [
+                            71,
+                            87,
+                            167
+                        ],
+                        "globalOperatingClass": 133,
+                        "maxEirp": [
+                            36.0,
+                            30.2,
+                            36.0
+                        ]
+                    },
+                    {
+                        "channelCfi": [
+                            79
+                        ],
+                        "globalOperatingClass": 134,
+                        "maxEirp": [
+                            33.15
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

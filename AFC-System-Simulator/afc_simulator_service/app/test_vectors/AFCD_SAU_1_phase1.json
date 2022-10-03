@@ -1,0 +1,147 @@
+{
+    "testCaseID": {
+        "unitUnderTest": "AFCD",
+        "purpose": "SAU",
+        "testVector": 1,
+        "phase": 1
+    },
+    "description": "Successful Spectrun update on Inquired Frequency Range",
+    "responses": {
+        "availableSpectrumInquiryResponses": [
+            {
+                "response": {
+                    "responseCode": 0,
+                    "shortDescription": "SUCCESS"
+                },
+                "availableFrequencyInfo": [
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 5945,
+                            "lowFrequency": 5925
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 5965,
+                            "lowFrequency": 5945
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 5985,
+                            "lowFrequency": 5965
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6005,
+                            "lowFrequency": 5985
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6105,
+                            "lowFrequency": 6085
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6125,
+                            "lowFrequency": 6105
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6145,
+                            "lowFrequency": 6125
+                        },
+                        "maxPsd": 18.27
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6165,
+                            "lowFrequency": 6145
+                        },
+                        "maxPsd": 18.13
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6185,
+                            "lowFrequency": 6165
+                        },
+                        "maxPsd": 18.35
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6205,
+                            "lowFrequency": 6185
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6245,
+                            "lowFrequency": 6225
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6265,
+                            "lowFrequency": 6245
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6765,
+                            "lowFrequency": 6745
+                        },
+                        "maxPsd": 22.1
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6785,
+                            "lowFrequency": 6765
+                        },
+                        "maxPsd": 22.1
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6805,
+                            "lowFrequency": 6785
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6825,
+                            "lowFrequency": 6805
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6845,
+                            "lowFrequency": 6825
+                        },
+                        "maxPsd": 22.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6865,
+                            "lowFrequency": 6845
+                        },
+                        "maxPsd": 22.9
+                    }
+                ]
+            }
+        ]
+    }
+}

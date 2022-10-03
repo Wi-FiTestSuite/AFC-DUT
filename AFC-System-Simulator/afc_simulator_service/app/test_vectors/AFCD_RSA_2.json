@@ -1,0 +1,189 @@
+{
+    "testCaseID": {
+        "unitUnderTest": "AFCD",
+        "purpose": "RSA",
+        "testVector": 2
+    },
+    "description": "Spectrum availability based on Inquired channels list",
+    "responses": {
+        "availableSpectrumInquiryResponses": [
+            {
+                "response": {
+                    "responseCode": 0,
+                    "shortDescription": "SUCCESS"
+                },
+                "availableChannelInfo": [
+                    {
+                        "channelCfi": [
+                            1,
+                            5,
+                            9,
+                            13,
+                            17,
+                            21,
+                            25,
+                            29,
+                            33,
+                            37,
+                            41,
+                            45,
+                            49,
+                            53,
+                            57,
+                            61,
+                            65,
+                            69,
+                            73,
+                            77,
+                            81,
+                            85,
+                            89,
+                            93,
+                            117,
+                            121,
+                            125,
+                            129,
+                            133,
+                            149,
+                            153,
+                            157,
+                            161,
+                            165,
+                            169,
+                            173,
+                            177,
+                            181
+                        ],
+                        "globalOperatingClass": 131,
+                        "maxEirp": [
+                            28.5,
+                            28.5,
+                            28.5,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            33.2,
+                            33.2,
+                            33.2,
+                            33.2,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            26.9,
+                            31.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            33.9,
+                            19.2,
+                            19.2,
+                            36.0
+                        ]
+                    },
+                    {
+                        "channelCfi": [
+                            3,
+                            11,
+                            19,
+                            27,
+                            35,
+                            43,
+                            51,
+                            59,
+                            67,
+                            75,
+                            83,
+                            91,
+                            123,
+                            131,
+                            155,
+                            163,
+                            171,
+                            179
+                        ],
+                        "globalOperatingClass": 132,
+                        "maxEirp": [
+                            31.5,
+                            31.5,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            28.1,
+                            36.0,
+                            36.0,
+                            22.2,
+                            22.2
+                        ]
+                    },
+                    {
+                        "channelCfi": [
+                            7,
+                            23,
+                            39,
+                            55,
+                            71,
+                            87,
+                            167
+                        ],
+                        "globalOperatingClass": 133,
+                        "maxEirp": [
+                            34.5,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            36.0,
+                            25.2
+                        ]
+                    },
+                    {
+                        "channelCfi": [
+                            15,
+                            47,
+                            79
+                        ],
+                        "globalOperatingClass": 134,
+                        "maxEirp": [
+                            36.0,
+                            36.0,
+                            36.0
+                        ]
+                    },
+                    {
+                        "channelCfi": [
+                            2
+                        ],
+                        "globalOperatingClass": 136,
+                        "maxEirp": [
+                            34.0
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
