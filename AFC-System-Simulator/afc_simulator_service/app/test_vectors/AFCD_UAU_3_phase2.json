@@ -1,0 +1,21 @@
+{
+    "testCaseID": {
+        "unitUnderTest": "AFCD",
+        "purpose": "UAU",
+        "testVector": 3,
+        "phase": 2
+    },
+    "description": "Unsuccessful Spectrum update based on Inquired Channels and Frequency Range",
+    "responses": {
+        "availableSpectrumInquiryResponses": [
+            {
+                "response": {
+                    "responseCode": 0,
+                    "shortDescription": "SUCCESS"
+                },
+                "availableFrequencyInfo": [],
+                "availableChannelInfo": []
+            }
+        ]
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "testCaseID": {
+        "unitUnderTest": "AFCD",
+        "purpose": "USA",
+        "testVector": 1
+    },
+    "description": "Unsuccessful Specturm avaliablity based on Inquired Frequency range",
+    "responses": {
+        "availableSpectrumInquiryResponses": [
+            {
+                "response": {
+                    "responseCode": 0,
+                    "shortDescription": "SUCCESS"
+                },
+                "availableFrequencyInfo": []
+            }
+        ]
+    }
+}

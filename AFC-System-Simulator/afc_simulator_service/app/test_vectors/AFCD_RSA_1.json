@@ -1,0 +1,272 @@
+{
+    "testCaseID": {
+        "unitUnderTest": "AFCD",
+        "purpose": "RSA",
+        "testVector": 1
+    },
+    "description": "Specturm avaliablity based on Inquired Frequency range",
+    "responses": {
+        "availableSpectrumInquiryResponses": [
+            {
+                "response": {
+                    "responseCode": 0,
+                    "shortDescription": "SUCCESS"
+                },
+                "availableFrequencyInfo": [
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 5945,
+                            "lowFrequency": 5925
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 5965,
+                            "lowFrequency": 5945
+                        },
+                        "maxPsd": 15.5
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 5985,
+                            "lowFrequency": 5965
+                        },
+                        "maxPsd": 15.5
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6005,
+                            "lowFrequency": 5985
+                        },
+                        "maxPsd": 15.5
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6025,
+                            "lowFrequency": 6005
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6045,
+                            "lowFrequency": 6025
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6065,
+                            "lowFrequency": 6045
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6085,
+                            "lowFrequency": 6065
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6105,
+                            "lowFrequency": 6085
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6125,
+                            "lowFrequency": 6105
+                        },
+                        "maxPsd": 20.2
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6145,
+                            "lowFrequency": 6125
+                        },
+                        "maxPsd": 20.2
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6165,
+                            "lowFrequency": 6145
+                        },
+                        "maxPsd": 20.2
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6185,
+                            "lowFrequency": 6165
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6205,
+                            "lowFrequency": 6185
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6245,
+                            "lowFrequency": 6225
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6265,
+                            "lowFrequency": 6245
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6285,
+                            "lowFrequency": 6265
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6305,
+                            "lowFrequency": 6285
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6325,
+                            "lowFrequency": 6305
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6345,
+                            "lowFrequency": 6325
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6365,
+                            "lowFrequency": 6345
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6385,
+                            "lowFrequency": 6365
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6405,
+                            "lowFrequency": 6385
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6425,
+                            "lowFrequency": 6405
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6545,
+                            "lowFrequency": 6525
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6565,
+                            "lowFrequency": 6545
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6585,
+                            "lowFrequency": 6565
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6605,
+                            "lowFrequency": 6585
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6625,
+                            "lowFrequency": 6605
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6705,
+                            "lowFrequency": 6685
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6725,
+                            "lowFrequency": 6705
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6745,
+                            "lowFrequency": 6725
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6765,
+                            "lowFrequency": 6745
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6785,
+                            "lowFrequency": 6765
+                        },
+                        "maxPsd": 23
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6805,
+                            "lowFrequency": 6785
+                        },
+                        "maxPsd": 20.9
+                    },
+                    {
+                        "frequencyRange": {
+                            "highFrequency": 6865,
+                            "lowFrequency": 6845
+                        },
+                        "maxPsd": 23
+                    }
+                ]
+            }
+        ]
+    }
+}
