@@ -20,7 +20,7 @@ The source code of AFC System Simulator and AFC DUT Test Script in this reposito
 
 ## Apply the changes of AFC System Simulator
 AFC System Simulator requires Wi-Fi Alliance QuickTrack Test Tool pre-installed on Ubuntu 20.04.1. 
-User can download the afc_simulator_server folder under AFC-DUT/AFC-System-Simulator of this repository, then overwrite the folder, **/usr/local/bin/WFA-QuickTrack-Tool/QuickTrack-Tool/Test-Services/afc_simulator_server** on the QuickTrack Test Tool installed device.
+User can download the afc_simulator_service folder under AFC-DUT/AFC-System-Simulator of this repository, then overwrite the folder, **/usr/local/bin/WFA-QuickTrack-Tool/QuickTrack-Tool/Test-Services/afc_simulator_service** on the QuickTrack Test Tool installed device.
 
 ## Apply the changes of AFC DUT Test Script
 AFC DUT Test Script requires Wi-Fi Alliance QuickTrack Test Tool pre-installed on Ubuntu 20.04.1. 

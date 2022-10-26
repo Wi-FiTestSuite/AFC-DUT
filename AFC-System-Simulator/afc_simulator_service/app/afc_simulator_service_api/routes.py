@@ -70,8 +70,6 @@ def is_inquired_freq_range(freq_range, inquired_list):
 @api.route('/availableSpectrumInquiry')
 class AvailableSpectrum(Resource):
     @api.response(200, "Success")
-    @api.response(400, "Exception occurs")
-    @api.response(500, "test vector is not found")
     def post(self):
         global vectors
         global recv_request
@@ -81,6 +79,7 @@ class AvailableSpectrum(Resource):
         global filename_prefix
         has_channel = False
         has_freq_range = False
+        valid_location_num = 0
         recv_request = request.json
         missing_params_resp = {
             "availableSpectrumInquiryResponses": [
@@ -93,11 +92,18 @@ class AvailableSpectrum(Resource):
                     }
                 }
             ],
-            "version": "1.3"
         }
-
-        if filename_prefix == "":
-            return
+        general_failure_resp = {
+            "availableSpectrumInquiryResponses": [
+                {
+                    "requestId": "",
+                    "response": {
+                        "responseCode": -1,
+                        "shortDescription": "General Failure"
+                    },
+                }
+            ],
+        }
 
         # Handling request
         try:
@@ -106,13 +112,41 @@ class AvailableSpectrum(Resource):
             req = recv_request['availableSpectrumInquiryRequests'][0]
             Logger.log(LogCategory.DEBUG, f"version {version} received request {req}")
             req_id = req["requestId"]
+
+            # --- Prepare general failure respose ---
+            sent_gen_failure_response = copy.deepcopy(general_failure_resp)
+            sent_gen_failure_response['version'] = version
+            sent_gen_failure_response['availableSpectrumInquiryResponses'][0]["requestId"] = req_id
+            # --- ---
+
+            if filename_prefix == "":
+                Logger.log(LogCategory.ERROR, f'test vector is not configured')
+                return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)            
+
             ruleset_ids = req["deviceDescriptor"]['rulesetIds']
             Logger.log(LogCategory.DEBUG, f"requestId {req_id} rulesetIds {ruleset_ids}")
             Logger.log(LogCategory.DEBUG, f"serialNumber {req['deviceDescriptor']['serialNumber']}")
             certId = req['deviceDescriptor']['certificationId'][0]
             Logger.log(LogCategory.DEBUG, f"certificationId - id {certId['id']} nra {certId['nra']}")
-            center = req['location']['ellipse']['center']
-            Logger.log(LogCategory.DEBUG, f"center {center['latitude']} {center['longitude']}")
+
+            if "location" in req:
+                if 'ellipse' in req['location']:
+                    valid_location_num += 1
+                    center = req['location']['ellipse']['center']
+                    Logger.log(LogCategory.DEBUG, f"center {center['latitude']} {center['longitude']}")
+                if 'linearPolygon' in req['location']:
+                    valid_location_num += 1
+                    Logger.log(LogCategory.DEBUG, f"linearPolygon outerBoundary {req['location']['linearPolygon']['outerBoundary']}")
+                if 'radialPolygon' in req['location']:
+                    valid_location_num += 1
+                    center = req['location']['radialPolygon']['center']
+                    Logger.log(LogCategory.DEBUG, f"center {center['latitude']} {center['longitude']}")
+                    Logger.log(LogCategory.DEBUG, f"radialPolygon outerBoundary {req['location']['radialPolygon']['outerBoundary']}")
+
+            if valid_location_num != 1:
+                Logger.log(LogCategory.ERROR, f'Invalid location object number {valid_location_num}')
+                return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)            
+
             field = "inquiredChannels"
             if field in req:
                 oper_class_list = [item["globalOperatingClass"] for item in req[field]]
@@ -128,15 +162,14 @@ class AvailableSpectrum(Resource):
         except KeyError as err:
             sent_response = copy.deepcopy(missing_params_resp)
             Logger.log(LogCategory.ERROR, f'KeyError {err}')
+            sent_response['version'] = version
             resp = sent_response['availableSpectrumInquiryResponses'][0]
             resp["requestId"] = req_id
             resp["response"]["supplementalInfo"] = {"missingParams": [str(err)]}
             return Response(json.dumps(sent_response), mimetype="application/json", status=200)
-        except Exception as err:
-            err_msg = f'Request Exception {err}'
-            Logger.log(LogCategory.ERROR, err_msg)
-            sent_response = {"message": err_msg}
-            return Response(json.dumps(sent_response), mimetype="application/json", status=400)
+        except Exception as err:            
+            Logger.log(LogCategory.ERROR, f'Request Exception {err}')
+            return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)
         
         vec = None
         if has_freq_range and has_channel:
@@ -158,8 +191,8 @@ class AvailableSpectrum(Resource):
                 with open(test_case_file, "r") as f:
                     vectors = json.load(f)
             else:
-                response = {"message": f"test vector {filename} is not found"}
-                return Response(json.dumps(response), mimetype="application/json", status=500)
+                Logger.log(LogCategory.ERROR, f"test vector {filename} is not found")
+                return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)
 
         # Handling response
         if resp_wait_time > 0:
@@ -192,21 +225,18 @@ class AvailableSpectrum(Resource):
                             resp[field].append(item)
 
                 return Response(json.dumps(sent_response), mimetype="application/json", status=200)
-            else:
-                sent_response = {"message": "test vector is not found"}
-                return Response(json.dumps(sent_response), mimetype="application/json", status=500)
-        except Exception as err:
-            err_msg = f'Response Exception {err}'
-            Logger.log(LogCategory.ERROR, err_msg)
-            sent_response = {"message": err_msg}
-            return Response(json.dumps(sent_response), mimetype="application/json", status=400)
+            else:                
+                Logger.log(LogCategory.ERROR, f"test vector is not found")
+                return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)
+        except Exception as err:            
+            Logger.log(LogCategory.ERROR, f'Response Exception {err}')        
+            return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)
 
 # APIs for test scripts
 @api.route('/set-response')
 class SetResponse(Resource):
     @api.response(200, "Success")
     @api.response(400, "Exception occurs")
-    @api.response(500, "test vector is not found")
     @api.expect(test_case_control, validate=True)
     def post(self):
         global vectors
