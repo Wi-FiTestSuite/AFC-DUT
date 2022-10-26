@@ -62,13 +62,13 @@ class AFCBaseScript(TestScript):
             self.bss_conf,
             reg_conf
         )
-
+        self.power_cycle_timeout = InstructionLib.get_setting(SettingsName.AFCD_POWER_CYCLE_TIMEOUT)
 
     def execute(self):
         pass
 
     def teardown(self):
-        pass
+        AFCLib.reset_afc()
 
     def get_testscript_version(self):
         pass

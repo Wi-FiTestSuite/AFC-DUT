@@ -123,10 +123,12 @@ class AFCD_SAU_TV3_1(AFCBaseScript):
         InstructionLib.send_script_status(
             "Step 6 : Trigger Power Cycle and Configure the DUT with AFC System URL information", 60
         )
+        AFCLib.set_afc_response("SAU", phase=2, resp_wait_time=60)
         InstructionLib.afcd_operation({AFCParams.POWER_CYCLE.value: "1"})
 
-        AFCLib.set_afc_response("SAU", phase=2, resp_wait_time=60)
-        InstructionLib.wait(30)
+        manual_mode = InstructionLib.get_setting(SettingsName.MANUAL_DUT_MODE)
+        if not manual_mode:
+            InstructionLib.wait(self.power_cycle_timeout)
         # New AFC configurations
         if self.need_reg_conf:
             if self.geo_area == "LinearPolygon":
@@ -155,11 +157,11 @@ class AFCD_SAU_TV3_1(AFCBaseScript):
         )
         recv_req = False
         for i in range(0, 12):
-            InstructionLib.wait(5)
             afc_resp = AFCLib.get_afc_status()
             if afc_resp["receivedRequest"] != {}:
                recv_req = True
                break
+            InstructionLib.wait(5)
         if not recv_req:
             if lpi_support:
                 message = "Confirm the DUT does not transmit above LPI limits"
