@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Wi-Fi Alliance                                                
+# Copyright (c) 2022 Wi-Fi Alliance                                                
 
 # Permission to use, copy, modify, and/or distribute this software for any         
 # purpose with or without fee is hereby granted, provided that the above           
@@ -32,11 +32,13 @@ from commons.shared_enums import (
 
 json_dir_path = os.path.abspath("./QuickTrack-Tool/Test-Services/afc_simulator_service/app/test_vectors/")
 vectors = {}
-recv_request = {}
+recv_request = {"headers": {}, "body": {}}
 sent_response = {}
 resp_wait_time = 0
 phase = None
-filename_prefix = ""
+filename_prefix = "default"
+hold_response = False
+script_test_vector = 0
 
 api = Api(
     app=afc_simulator_api_blueprint,
@@ -54,6 +56,7 @@ test_case_control = api.model(
     {
         "unitUnderTest": fields.String(description="Unit Under Test"),
         "purpose": fields.String(description="Purpose"),
+        "testVector": fields.Integer(description="Test vector"),
         "phase": fields.Integer(description="Different phase of the same test vector"),
         "respWaitTime": fields.Integer(description="Wait time before sending an Available Spectrum Inquiry Response "),
     },
@@ -70,6 +73,7 @@ def is_inquired_freq_range(freq_range, inquired_list):
 @api.route('/availableSpectrumInquiry')
 class AvailableSpectrum(Resource):
     @api.response(200, "Success")
+    @api.response(400, "Bad Request")
     def post(self):
         global vectors
         global recv_request
@@ -77,10 +81,10 @@ class AvailableSpectrum(Resource):
         global resp_wait_time
         global phase
         global filename_prefix
+        global hold_response
         has_channel = False
         has_freq_range = False
         valid_location_num = 0
-        recv_request = request.json
         missing_params_resp = {
             "availableSpectrumInquiryResponses": [
                 {
@@ -105,16 +109,26 @@ class AvailableSpectrum(Resource):
             ],
         }
 
-        # Handling request
         try:
-            req_id = 0
-            version = recv_request['version']
-            req = recv_request['availableSpectrumInquiryRequests'][0]
-            Logger.log(LogCategory.DEBUG, f"version {version} received request {req}")
-            req_id = req["requestId"]
-
+            # Handling request
             # --- Prepare general failure respose ---
             sent_gen_failure_response = copy.deepcopy(general_failure_resp)
+            version = ""
+            req_id = 0
+
+            recv_request["headers"] = {k:v for k, v in request.headers.items()}
+            content_type = request.headers.get('Content-Type')
+            if (content_type == 'application/json'):
+                recv_request["body"] = request.json
+            else:
+                recv_request["body"] = {}        
+                return Response(json.dumps({"message": f"Content-Type {content_type} not supported! Please use application/json."}), mimetype="application/json", status=400)
+
+            Logger.log(LogCategory.DEBUG, f"received request {json.dumps(recv_request, indent=4)}")
+
+            version = recv_request["body"]['version']
+            req = recv_request["body"]['availableSpectrumInquiryRequests'][0]
+            req_id = req["requestId"]
             sent_gen_failure_response['version'] = version
             sent_gen_failure_response['availableSpectrumInquiryResponses'][0]["requestId"] = req_id
             # --- ---
@@ -124,7 +138,7 @@ class AvailableSpectrum(Resource):
                 return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)            
 
             ruleset_ids = req["deviceDescriptor"]['rulesetIds']
-            Logger.log(LogCategory.DEBUG, f"requestId {req_id} rulesetIds {ruleset_ids}")
+            Logger.log(LogCategory.DEBUG, f"version {version} requestId {req_id} rulesetIds {ruleset_ids}")
             Logger.log(LogCategory.DEBUG, f"serialNumber {req['deviceDescriptor']['serialNumber']}")
             certId = req['deviceDescriptor']['certificationId'][0]
             Logger.log(LogCategory.DEBUG, f"certificationId - id {certId['id']} nra {certId['nra']}")
@@ -172,16 +186,20 @@ class AvailableSpectrum(Resource):
             return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)
         
         vec = None
-        if has_freq_range and has_channel:
-                vec = "3"
+        if script_test_vector:
+            vec = f"{script_test_vector}"
+        elif has_freq_range and has_channel:
+            vec = "3"
         elif has_channel:
-                vec = "2"
+            vec = "2"
         elif has_freq_range:
-                vec = "1"
+            vec = "1"
 
         Logger.log(LogCategory.DEBUG, f'test vector {vec} filename_prefix {filename_prefix}')
         if vec:
-            if phase:
+            if filename_prefix == "default":
+                filename = filename_prefix + ".json"
+            elif phase:
                 filename = filename_prefix + vec + f"_phase{phase}.json"
             else:
                 filename = filename_prefix + vec + ".json"
@@ -196,6 +214,7 @@ class AvailableSpectrum(Resource):
 
         # Handling response
         if resp_wait_time > 0:
+            Logger.log(LogCategory.DEBUG, f"Waits for {resp_wait_time} seconds before sending an Available Spectrum Inquiry Response ")
             sleep(resp_wait_time)
         try:
             if vectors:
@@ -223,9 +242,14 @@ class AvailableSpectrum(Resource):
                         freq_range = item["frequencyRange"]
                         if is_inquired_freq_range((freq_range["lowFrequency"], freq_range["highFrequency"]) , freq_range_list):
                             resp[field].append(item)
-
+                
+                if hold_response:
+                    Logger.log(LogCategory.DEBUG, f"Hold an Available Spectrum Inquiry Response")
+                while hold_response:                    
+                    sleep(1)
+                Logger.log(LogCategory.DEBUG, f"Sending an Available Spectrum Inquiry Response")
                 return Response(json.dumps(sent_response), mimetype="application/json", status=200)
-            else:                
+            else:
                 Logger.log(LogCategory.ERROR, f"test vector is not found")
                 return Response(json.dumps(sent_gen_failure_response), mimetype="application/json", status=200)
         except Exception as err:            
@@ -245,21 +269,30 @@ class SetResponse(Resource):
         global resp_wait_time
         global filename_prefix
         global phase
+        global hold_response
+        global script_test_vector
         tc = request.json
-        vectors = {}
-        recv_request = {}
-        sent_response = {}
-        resp_wait_time = 0
-        phase = None
  
         try:
-            filename_prefix = f'{tc["unitUnderTest"]}_{tc["purpose"]}_'
+            if "purpose" in tc:                
+                phase = None
+                vectors = {}
+                recv_request = {"headers": {}, "body": {}}
+                sent_response = {}
+                resp_wait_time = 0
+                filename_prefix = f'{tc["unitUnderTest"]}_{tc["purpose"]}_'
+            if "testVector" in tc:
+                script_test_vector = tc["testVector"]
             if "phase" in tc:
                 phase = tc["phase"]
             if "respWaitTime" in tc:
-                resp_wait_time = tc["respWaitTime"]
-                response = {"message": "Success"}
-                return Response(json.dumps(response), mimetype="application/json", status=200)
+                resp_wait_time = tc["respWaitTime"]                
+            if "holdResponse" in tc:
+                hold_response = tc["holdResponse"]
+                Logger.log(LogCategory.DEBUG, f'holdResponse {hold_response}')
+
+            response = {"message": "Success"}
+            return Response(json.dumps(response), mimetype="application/json", status=200)
         except Exception as err:
             response = {"message": f"Exception : {err}"}
             return Response(json.dumps(response), mimetype="application/json", status=400)
@@ -272,7 +305,8 @@ class GetStatus(Resource):
         global recv_request
         global sent_response
         response = {"currentTestVector": vectors,
-                    "receivedRequest" : recv_request,
+                    "receivedRequestHeaders" : recv_request["headers"],
+                    "receivedRequest" : recv_request["body"],
                     "sentResponse" : sent_response
                     }
         return Response(json.dumps(response), mimetype="application/json", status=200)
@@ -288,12 +322,14 @@ class SetResponse(Resource):
         global resp_wait_time
         global filename_prefix
         global phase
+        global script_test_vector
         vectors = {}
-        recv_request = {}
+        recv_request = {"headers": {}, "body": {}}
         sent_response = {}
         resp_wait_time = 0
         phase = None
-        filename_prefix = ""
+        filename_prefix = "default"
+        script_test_vector = 0
  
         try:
             response = {"message": "Success"}

@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Wi-Fi Alliance                                                
+# Copyright (c) 2022 Wi-Fi Alliance                                                
 
 # Permission to use, copy, modify, and/or distribute this software for any         
 # purpose with or without fee is hereby granted, provided that the above           
@@ -22,9 +22,10 @@ from IndigoTestScripts.helpers.instruction_lib import InstructionLib
 
 class AFCLib:
     @staticmethod
-    def set_afc_response(purpose, phase=None, resp_wait_time=0):
+    def set_afc_response(purpose, test_vector, phase=None, resp_wait_time=0):
         setting = {
             "unitUnderTest": "AFCD",
+            "testVector": test_vector,
             "purpose": purpose
         }
         if resp_wait_time:
@@ -46,7 +47,7 @@ class AFCLib:
             return None
         else:
             json_response =  json.loads(res.text)
-            InstructionLib.log_debug(f"current test status : {json_response}")
+            InstructionLib.log_debug(f"current test status : {json.dumps(json_response, indent=4)}")
             return json_response
 
     @staticmethod

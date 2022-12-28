@@ -125,6 +125,10 @@ class AFCParams(int, Enum):
     #  @note TLV Length: 0x08 to 0xFF, Value: alphanumeric value
     WPA_PASSPHRASE = 0xB01D
 
+    ## @brief Trigger DUT to send test frames
+    #  @note TLV Length: 0x01, Value: 0 - 20MHz, 1 - 40MHz, 2 - 80MHz, 3 - 160MHz, 4 - 320MHz
+    SEND_TEST_FRAME = 0xB01E
+
 class GeoArea(str, Enum):
     Ellipse = "0"
     LinearPolygon = "1"
@@ -134,6 +138,13 @@ class Deployment(str, Enum):
     Unknown = "0"
     Indoor = "1"
     Outdoor = "2"
+
+class TestFrameBandwidth(str, Enum):
+    BW20  = "0"
+    BW40  = "1"
+    BW80  = "2"
+    BW160 = "3"
+    BW320 = "4"
 
 class AFCResponseTLV(int, Enum):
     """List of TLV used in the QuickTrack API response and ACK messages from the DUT"""

@@ -14,9 +14,12 @@
 # OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS                          
 # SOFTWARE.
 
+import concurrent.futures
 from IndigoTestScripts.Programs.AFC.AFCBaseScript import AFCBaseScript
 from IndigoTestScripts.Programs.AFC.afc_lib import AFCLib
 from IndigoTestScripts.Programs.AFC.afc_enums import *
+from IndigoTestScripts.Programs.AFC.rf_measurement_validation import RfMeasurementValidation
+from IndigoTestScripts.Programs.AFC.spectrum_analyzer_lib import SpectrumAnalyzerLib
 from IndigoTestScripts.helpers.instruction_lib import InstructionLib
 from commons.shared_enums import *
 
@@ -27,6 +30,7 @@ class AFCD_SAU_TV1_1(AFCBaseScript):
         self.description = (
             "Successful spectrum access update"
         )
+        self.power_cycle_done = False
 
     def setup(self):
         """Setting up all the pre-requisites required for test case execution
@@ -39,29 +43,30 @@ class AFCD_SAU_TV1_1(AFCBaseScript):
     def execute(self):
         """Method to execute all the instructions as per test plan after setup."""
 
-	# setup() in AFCBaseScript created afc_config
+        if not SpectrumAnalyzerLib().spectrum_analyzer_connect():
+            InstructionLib.log_error("Please configure the correct Tester IP Address setting")
+            return
+
+	    # setup() in AFCBaseScript created afc_config
         InstructionLib.afcd_configure(self.afc_config)
 
+        InstructionLib.log_info("RF Test Equipment is monitoring the output of the DUT...")
+        report = SpectrumAnalyzerLib().spectrum_analyze_all()
+        super().save_rf_measurement_report(report, "rfMeasurementReport_step_1.json")
         lpi_support = InstructionLib.get_setting(SettingsName.AFCD_APPROVED_LPI_OPERATION)
-        if lpi_support:
-            message = "Confirm the DUT does not transmit above LPI limits"
-        else:
-            message = "Confirm the DUT does not transmit in the band"
-        title = type(self).__name__
-        InstructionLib.post_popup_message(
-            message,
-            [UiPopupButtons.POP_UP_BUTTON_YES, UiPopupButtons.POP_UP_BUTTON_NO],
-            title,
-            UiPopupButtons.POP_UP_BUTTON_NO,
-        )
-        user_button, user_input = InstructionLib.get_popup_response()
-        if user_button == UiPopupButtons.POP_UP_BUTTON_YES:
-            power_valid = True
-        elif user_button == UiPopupButtons.POP_UP_BUTTON_NO:
-            power_valid = False
-            InstructionLib.append_measurements("AFC_POWER_CONFORM", False, "DUT conforms to the conditons before the Spectrum Inquiry Response")
-            return
-        AFCLib.set_afc_response("SAU", phase=1)
+        if report:
+            if lpi_support:                
+                if not RfMeasurementValidation({} , report).validate_lpi_transmit_power():
+                    InstructionLib.append_measurements(
+                        "AFC_POWER_CONFORM", False, "DUT conforms to the conditons before the Spectrum Inquiry Response")
+                    return
+            else:
+                InstructionLib.log_error(f'The DUT should not transmit in the band if the DUT supports only SP operation')
+                InstructionLib.append_measurements(
+                        "AFC_POWER_CONFORM", False, "DUT conforms to the conditons before the Spectrum Inquiry Response")
+                return
+
+        AFCLib.set_afc_response("SAU", test_vector=1, phase=1)
 
         InstructionLib.send_script_status(
             "Step 2 : Send an Available Spectrum Inquiry Request", 20
@@ -73,7 +78,9 @@ class AFCD_SAU_TV1_1(AFCBaseScript):
         InstructionLib.send_script_status(
             "Step 3 : AFC Test Harness validates mandatory registration information", 30
         )
-        InstructionLib.wait(5)
+        manual_mode = InstructionLib.get_setting(SettingsName.MANUAL_DUT_MODE)
+        if not manual_mode:
+            InstructionLib.wait(10)
         InstructionLib.send_script_status(
             "Step 4 : AFC Test Harness sends an Available Spectrum Inquiry Response", 40
         )
@@ -89,46 +96,42 @@ class AFCD_SAU_TV1_1(AFCBaseScript):
         req_valid = super().verify_req_infor(afc_resp["receivedRequest"])
         InstructionLib.append_measurements("AFC_REG_INFO", req_valid, "Valid mandatory registration information")
 
+        InstructionLib.send_script_status(
+            "Step 5 : RF Test Equipment verification", 50
+        )
+
         InstructionLib.wait(60)
         resp = InstructionLib.afcd_get_info({})
         if resp.status != 0:
             InstructionLib.log_info("Getting infor from AFC DUT Failed!")
+            InstructionLib.append_measurements("AFC_POWER_CONFORM", False, "DUT conforms to the conditons in the Spectrum Inquiry Response")
+            return
         else:
             InstructionLib.log_debug("Response: {}".format(resp.tlvs))
-        #power = super().get_center_power(afc_resp, resp.tlvs.get(AFCResponseTLV.OPER_FREQ.value), resp.tlvs.get(AFCResponseTLV.OPER_CHANNEL.value))
+            op_channel = int(resp.tlvs.get(AFCResponseTLV.OPER_CHANNEL.value))
 
-        InstructionLib.send_script_status(
-            "Step 5 : RF Test Equipment verification", 50
-        )
-        if lpi_support:
-            message = "DUT transmit power in the band is < CEILING[LPI limits, SP limits in Spectrum Reponse] and does not exceed limits in adjacent frequencies"
-        else:
-            message = "DUT conforms to the conditions in Spectrum Response and does not exceed emissoins limits in adjacent frequencies"
-        InstructionLib.post_popup_message(
-            message,
-            [UiPopupButtons.POP_UP_BUTTON_YES, UiPopupButtons.POP_UP_BUTTON_NO],
-            title,
-            UiPopupButtons.POP_UP_BUTTON_NO,
-        )
-        user_button, user_input = InstructionLib.get_popup_response()
-        if user_button == UiPopupButtons.POP_UP_BUTTON_YES:
-            power_valid = True
-        elif user_button == UiPopupButtons.POP_UP_BUTTON_NO:
-            power_valid = False
-        #InstructionLib.afcd_upload_result()
-        # Verify result based on power from afc_resp
-        #Suppression: 20dB PSD at one Mhz outside channel edge, 28dB PSD at 1 BW, 40dB PSD at 1.5 BW
+        InstructionLib.log_info("RF Test Equipment is monitoring the output of the DUT...")
+        report = SpectrumAnalyzerLib().spectrum_analyze(op_channel, super().get_bw_from_cfi(op_channel))
+        super().save_rf_measurement_report(report, "rfMeasurementReport_step_5.json")
+        power_valid = RfMeasurementValidation(afc_resp["sentResponse"] , report).validate_rf_measurement_by_freq()
         InstructionLib.append_measurements("AFC_POWER_CONFORM", power_valid, "DUT conforms to the conditons in the Spectrum Inquiry Response")
 
         InstructionLib.send_script_status(
             "Step 6 : Trigger Power Cycle and Configure the DUT with AFC System URL information", 60
         )
-        AFCLib.set_afc_response("SAU", phase=2, resp_wait_time=60)
-        InstructionLib.afcd_operation({AFCParams.POWER_CYCLE.value: "1"})
+        AFCLib.set_afc_response("SAU", test_vector=1, phase=2, resp_wait_time=60)
 
-        manual_mode = InstructionLib.get_setting(SettingsName.MANUAL_DUT_MODE)
-        if not manual_mode:
-            InstructionLib.wait(self.power_cycle_timeout)
+        report_9 = None
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(self.monitor_dut_output)
+
+            InstructionLib.afcd_operation({AFCParams.POWER_CYCLE.value: "1"})
+            if not manual_mode:
+                InstructionLib.wait(self.power_cycle_timeout)
+
+            self.power_cycle_done = True
+            report_9 = future.result()
+
         # New AFC configurations
         if self.need_reg_conf:
             if self.geo_area == "LinearPolygon":
@@ -158,27 +161,29 @@ class AFCD_SAU_TV1_1(AFCBaseScript):
         recv_req = False
         for i in range(0, 12):
             afc_resp = AFCLib.get_afc_status()
-            if afc_resp["receivedRequest"] != {}:
+            if afc_resp["receivedRequest"] != {} and afc_resp["sentResponse"] != {}:
                recv_req = True
                break
             InstructionLib.wait(5)
+
         if not recv_req:
-            if lpi_support:
-                message = "Confirm the DUT does not transmit above LPI limits"
-            else:
-                message = "Confirm the DUT does not transmit in the band"
-            InstructionLib.post_popup_message(
-                message,
-                [UiPopupButtons.POP_UP_BUTTON_YES, UiPopupButtons.POP_UP_BUTTON_NO],
-                title,
-                UiPopupButtons.POP_UP_BUTTON_NO,
-            )
-            user_button, user_input = InstructionLib.get_popup_response()
-            if user_button == UiPopupButtons.POP_UP_BUTTON_YES:
-                power_valid = True
-            elif user_button == UiPopupButtons.POP_UP_BUTTON_NO:
-                power_valid = False
-            InstructionLib.append_measurements("AFC_POWER_CONFORM_NO_REQ", power_valid, "DUT conforms to the conditons in no Spectrum Inquiry Request case")
+            InstructionLib.log_info("RF Test Equipment is monitoring the output of the DUT...")
+            report = SpectrumAnalyzerLib().spectrum_analyze_all()
+            super().save_rf_measurement_report(report, "rfMeasurementReport_step_7.json")
+            if report:
+                if lpi_support:                
+                    if not RfMeasurementValidation({} , report).validate_lpi_transmit_power():
+                        InstructionLib.append_measurements(
+                            "AFC_POWER_CONFORM_NO_REQ", False, "DUT conforms to the conditons in no Spectrum Inquiry Request case")
+                        return
+                else:
+                    InstructionLib.log_error(f'The DUT should not transmit in the band if the DUT supports only SP operation')
+                    InstructionLib.append_measurements(
+                            "AFC_POWER_CONFORM_NO_REQ", False, "DUT conforms to the conditons in no Spectrum Inquiry Request case")
+                    return
+
+            InstructionLib.append_measurements(
+                            "AFC_POWER_CONFORM_NO_REQ", True, "DUT conforms to the conditons in no Spectrum Inquiry Request case")
             return
 
         InstructionLib.send_script_status(
@@ -190,52 +195,58 @@ class AFCD_SAU_TV1_1(AFCBaseScript):
         InstructionLib.send_script_status(
             "Step 9 : AFC Test Harness waits for 60 seconds before sending an Available Spectrum Inquiry Response", 90
         )
-        if lpi_support:
-            message = "Confirm the DUT does not transmit above LPI limits for 60 seconds"
-        else:
-            message = "Confirm the DUT does not transmit in the band for 60 seconds"
-        InstructionLib.post_popup_message(
-            message,
-            [UiPopupButtons.POP_UP_BUTTON_YES, UiPopupButtons.POP_UP_BUTTON_NO],
-            title,
-            UiPopupButtons.POP_UP_BUTTON_NO,
-        )
-        user_button, user_input = InstructionLib.get_popup_response()
-        if user_button == UiPopupButtons.POP_UP_BUTTON_YES:
-            power_valid = True
-        elif user_button == UiPopupButtons.POP_UP_BUTTON_NO:
-            power_valid = False
-        InstructionLib.append_measurements("AFC_POWER_CONFORM_1", power_valid, "DUT conforms to the conditons before AFC Test Harness sends Spectrum Response")
-        afc_resp = AFCLib.get_afc_status()
 
-        InstructionLib.wait(60)
-        resp = InstructionLib.afcd_get_info({})
-        if resp.status != 0:
-            InstructionLib.log_info("Getting infor from AFC DUT Failed!")
+        if report_9 is None:
+            InstructionLib.log_info("RF Test Equipment is monitoring the output of the DUT...")
+            report_9 = SpectrumAnalyzerLib().spectrum_analyze_all(timeout=50)
+        super().save_rf_measurement_report(report_9, "rfMeasurementReport_step_9.json")
+        if report_9:
+            if lpi_support:                
+                if not RfMeasurementValidation({} , report_9).validate_lpi_transmit_power():
+                    InstructionLib.append_measurements(
+                        "AFC_POWER_CONFORM_1", False, "DUT conforms to the conditons before AFC Test Harness sends Spectrum Response")                    
+            else:
+                InstructionLib.log_error(f'The DUT should not transmit in the band if the DUT supports only SP operation')
+                InstructionLib.append_measurements(
+                    "AFC_POWER_CONFORM_1", False, "DUT conforms to the conditons before AFC Test Harness sends Spectrum Response")
         else:
-            InstructionLib.log_debug("Response: {}".format(resp.tlvs))
-        #power = super().get_center_power(afc_resp, resp.tlvs.get(AFCResponseTLV.OPER_FREQ.value), resp.tlvs.get(AFCResponseTLV.OPER_CHANNEL.value))
+            InstructionLib.append_measurements(
+                "AFC_POWER_CONFORM_1", True, "DUT conforms to the conditons before AFC Test Harness sends Spectrum Response")
 
         InstructionLib.send_script_status(
             "Step 10 : RF Test Equipment verification", 95
         )
-        if lpi_support:
-            message = "DUT transmit power in the band is < CEILING[LPI limits, SP limits in Spectrum Reponse] and does not exceed limits in adjacent frequencies"
+        InstructionLib.wait(60)
+        afc_resp = AFCLib.get_afc_status()
+        resp = InstructionLib.afcd_get_info({})
+        if resp.status != 0:
+            InstructionLib.log_info("Getting infor from AFC DUT Failed!")
+            InstructionLib.append_measurements("AFC_POWER_CONFORM_2", False, "DUT conforms to the conditons in the Spectrum Inquiry Response")
+            return
         else:
-            message = "DUT conforms to the conditions in Spectrum Response and does not exceed emissoins limits in adjacent frequencies"
-        InstructionLib.post_popup_message(
-            message,
-            [UiPopupButtons.POP_UP_BUTTON_YES, UiPopupButtons.POP_UP_BUTTON_NO],
-            title,
-            UiPopupButtons.POP_UP_BUTTON_NO,
-        )
-        user_button, user_input = InstructionLib.get_popup_response()
-        if user_button == UiPopupButtons.POP_UP_BUTTON_YES:
-            power_valid = True
-        elif user_button == UiPopupButtons.POP_UP_BUTTON_NO:
-            power_valid = False
-        #InstructionLib.afcd_upload_result()
+            InstructionLib.log_debug("Response: {}".format(resp.tlvs))
+            op_channel = int(resp.tlvs.get(AFCResponseTLV.OPER_CHANNEL.value))
+
+        InstructionLib.log_info("RF Test Equipment is monitoring the output of the DUT...")
+        report = SpectrumAnalyzerLib().spectrum_analyze(op_channel, super().get_bw_from_cfi(op_channel))
+        super().save_rf_measurement_report(report, "rfMeasurementReport_step_10.json")
+        power_valid = RfMeasurementValidation(afc_resp["sentResponse"] , report).validate_rf_measurement_by_freq()
         InstructionLib.append_measurements("AFC_POWER_CONFORM_2", power_valid, "DUT conforms to the conditons in the Spectrum Inquiry Response")
+
+    def monitor_dut_output(self):
+        report = {}
+        recv_req = False
+        while not self.power_cycle_done:
+            afc_resp = AFCLib.get_afc_status()
+            if afc_resp["receivedRequest"] != {}:
+                recv_req = True
+                break
+            InstructionLib.wait(5)
+
+        if recv_req:
+            InstructionLib.log_info("RF Test Equipment is monitoring the output of the DUT...")
+            report = SpectrumAnalyzerLib().spectrum_analyze_all(timeout=55)
+        return report
 
     def teardown(self):
         """Method to reset the AFC DUT after test execution."""

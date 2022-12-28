@@ -15,11 +15,13 @@
 # SOFTWARE.
 
 import math
+import json
+import os
 
 from IndigoTestScripts.TestScript import TestScript
 from IndigoTestScripts.helpers.instruction_lib import InstructionLib
 from commons.shared_enums import (
-    OperationalBand, DutType, SettingsName
+    OperationalBand, DutType, SettingsName, UiPopupButtons
 )
 from IndigoTestScripts.Programs.AFC.afc_enums import AFCParams, GeoArea, Deployment
 from IndigoTestScripts.Programs.AFC.afc_lib import AFCLib
@@ -78,6 +80,26 @@ class AFCBaseScript(TestScript):
             self.description = ""
         return self.description
 
+    def check_RF_test_result_manually(self, lpi_message, sp_message):
+        lpi_support = InstructionLib.get_setting(SettingsName.AFCD_APPROVED_LPI_OPERATION)        
+        if lpi_support:
+            message = lpi_message
+        else:
+            message = sp_message
+        title = self.__class__.__name__ + " - RF Test Equipment monitors the output of the DUT"
+        InstructionLib.post_popup_message(
+            message,
+            [UiPopupButtons.POP_UP_BUTTON_YES, UiPopupButtons.POP_UP_BUTTON_NO],
+            title,
+            UiPopupButtons.POP_UP_BUTTON_NO,
+        )
+        user_button, user_input = InstructionLib.get_popup_response()
+        if user_button == UiPopupButtons.POP_UP_BUTTON_YES:
+            power_valid = True
+        elif user_button == UiPopupButtons.POP_UP_BUTTON_NO:
+            power_valid = False
+        return power_valid
+
     @staticmethod
     def dev_desc_conf(serial_number="SN000", cert_nra="FCC", 
             cert_id="CID000", rule_id="US_47_CFR_PART_15_SUBPART_E"):
@@ -120,7 +142,7 @@ class AFCBaseScript(TestScript):
         return loca_config
 
     @staticmethod
-    def freq_channel_conf(freq="5925,6425 6525,6875", op_class="131 132 133", channel=None):
+    def freq_channel_conf(freq="5925,6425 6525,6875", op_class="131 132 133 134 136", channel=None):
         req_config = {}
         # if type is list, casting to string
         if type(freq) is list:
@@ -159,7 +181,7 @@ class AFCBaseScript(TestScript):
         return ap_config
 
     @staticmethod
-    def add_server_conf(server_url="testserver.wfatestorg.org/afc-simulator-api"):
+    def add_server_conf(server_url="https://testserver.wfatestorg.org/afc-simulator-api"):
         ap_config = {}
         ap_config[AFCParams.AFC_SERVER_URL.value] = server_url
 
@@ -230,6 +252,9 @@ class AFCBaseScript(TestScript):
     @staticmethod
     def get_bw_from_cfi(cfi):
         cfi_list = [7, 23, 39, 55, 71, 87, 135, 151, 167]
+        cfi_160m_list = [15, 47, 79, 111, 143, 175, 207]
+        if cfi in cfi_160m_list:
+            return 160
         for index in cfi_list:
             if cfi == index:
                 return 80
@@ -239,3 +264,11 @@ class AFCBaseScript(TestScript):
                 return 40
             else:
                 return 20
+
+    @staticmethod
+    def save_rf_measurement_report(report_json, file_name):
+
+        json_object = json.dumps(report_json, indent=4)
+
+        with open(os.path.join(InstructionLib.get_current_testcase_log_dir(), file_name), "w") as f:
+            f.write(json_object)
