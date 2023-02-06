@@ -151,6 +151,7 @@ done:
 static int afcd_operation_handler(struct packet_wrapper *req, struct packet_wrapper *resp) {
     struct tlv_hdr *tlv;
     char req_type[8];
+    char frame_bw[8];
 
     tlv = find_wrapper_tlv_by_id(req, TLV_AFC_DEVICE_RESET);
     if (tlv) {
@@ -173,6 +174,20 @@ static int afcd_operation_handler(struct packet_wrapper *req, struct packet_wrap
     if (tlv) {
         indigo_logger(LOG_LEVEL_DEBUG, "Trigger power cycle");
         /* Vendor specific: add in vendor_specific_afc.c */
+    }
+    tlv = find_wrapper_tlv_by_id(req, TLV_AFC_SEND_TEST_FRAME);
+    if (tlv) {
+        memset(frame_bw, 0, sizeof(frame_bw));
+        memcpy(frame_bw, tlv->value, tlv->len);
+        if (atoi(frame_bw) == 0) {
+            indigo_logger(LOG_LEVEL_DEBUG, "Trigger DUT to send test frames for 20MHz bandwidth");
+        } else if (atoi(frame_bw) == 1) {
+            indigo_logger(LOG_LEVEL_DEBUG, "Trigger DUT to send test frames for 40MHz bandwidth");
+        } else if (atoi(frame_bw) == 2) {
+            indigo_logger(LOG_LEVEL_DEBUG, "Trigger DUT to send test frames for 80MHz bandwidth");
+        } else if (atoi(frame_bw) == 3) {
+            indigo_logger(LOG_LEVEL_DEBUG, "Trigger DUT to send test frames for 160MHz bandwidth");
+        }
     }
 
     fill_wrapper_message_hdr(resp, API_CMD_RESPONSE, req->hdr.seq);

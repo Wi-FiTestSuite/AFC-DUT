@@ -341,6 +341,7 @@ struct indigo_api {
 #define TLV_AFC_POWER_CYCLE                     0xb01b
 #define TLV_AFC_SECURITY_TYPE                   0xb01c
 #define TLV_AFC_WPA_PASSPHRASE                  0xb01d
+#define TLV_AFC_SEND_TEST_FRAME                 0xb01e
 /* AFC Response TLV */
 #define TLV_AFC_OPER_FREQ                       0xbc00
 #define TLV_AFC_OPER_CHANNEL                    0xbc01
