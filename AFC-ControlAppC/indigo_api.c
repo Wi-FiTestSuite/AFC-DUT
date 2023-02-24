@@ -311,6 +311,7 @@ struct indigo_tlv indigo_tlv_list[] = {
     { TLV_AFC_SECURITY_TYPE, "AFC_SECURITY_TYPE" },
     { TLV_AFC_WPA_PASSPHRASE, "AFC_WPA_PASSPHRASE" },
     { TLV_AFC_SEND_TEST_FRAME, "AFC_SEND_TEST_FRAME" },
+    { TLV_AFC_CA_CERT, "AFC_CA_CERT" },
 };
 
 /* Find the type of the API stucture by the ID from the list */

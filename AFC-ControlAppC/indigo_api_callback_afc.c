@@ -32,6 +32,7 @@
 /* Save TLVs in afcd_configure and Send in afcd_operation */
 char server_url[64];
 char geo_area[8];
+char ca_cert[S_BUFFER_LEN];
 
 void register_apis() {
     register_api(API_GET_CONTROL_APP_VERSION, NULL, get_control_app_handler);
@@ -103,6 +104,21 @@ static int afcd_configure_handler(struct packet_wrapper *req, struct packet_wrap
         memcpy(server_url, tlv->value, tlv->len);
     } else {
         indigo_logger(LOG_LEVEL_ERROR, "Missed TLV: TLV_AFC_SERVER_URL");
+        status = TLV_VALUE_STATUS_NOT_OK;
+        message = TLV_VALUE_NOT_OK;
+        goto done;
+    }
+
+    tlv = find_wrapper_tlv_by_id(req, TLV_AFC_CA_CERT);
+    if (tlv) {        
+        memset(ca_cert, 0, sizeof(ca_cert));
+        memcpy(ca_cert, tlv->value, tlv->len);
+        if (strlen(ca_cert) > 0)
+            indigo_logger(LOG_LEVEL_DEBUG, "Configure root certificate");
+        else
+            indigo_logger(LOG_LEVEL_DEBUG, "Do not configure root certificate !");
+    } else {
+        indigo_logger(LOG_LEVEL_ERROR, "Missed TLV: TLV_AFC_CA_CERT");
         status = TLV_VALUE_STATUS_NOT_OK;
         message = TLV_VALUE_NOT_OK;
         goto done;
