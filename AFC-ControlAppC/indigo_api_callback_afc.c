@@ -86,6 +86,7 @@ static int afcd_configure_handler(struct packet_wrapper *req, struct packet_wrap
     struct tlv_hdr *tlv;
     int i = 0;
     char security[8];
+    char bw[8];
 
     for (i = 0; i < req->tlv_num; i++) {
         struct indigo_tlv *i_tlv;
@@ -131,6 +132,20 @@ static int afcd_configure_handler(struct packet_wrapper *req, struct packet_wrap
         memcpy(security, tlv->value, tlv->len);
         if (atoi(security) == 0) {
             indigo_logger(LOG_LEVEL_DEBUG, "Configure SAE");
+        }
+    }
+    tlv = find_wrapper_tlv_by_id(req, TLV_AFC_BANDWIDTH);
+    if (tlv) {
+        memset(bw, 0, sizeof(bw));
+        memcpy(bw, tlv->value, tlv->len);
+        if (atoi(bw) == 0) {
+            indigo_logger(LOG_LEVEL_DEBUG, "Configure DUT to 20MHz bandwidth");
+        } else if (atoi(bw) == 1) {
+            indigo_logger(LOG_LEVEL_DEBUG, "Configure DUT to 40MHz bandwidth");
+        } else if (atoi(bw) == 2) {
+            indigo_logger(LOG_LEVEL_DEBUG, "Configure DUT to 80MHz bandwidth");
+        } else if (atoi(bw) == 3) {
+            indigo_logger(LOG_LEVEL_DEBUG, "Configure DUT to 160MHz bandwidth");
         }
     }
 
