@@ -313,6 +313,7 @@ struct indigo_tlv indigo_tlv_list[] = {
     { TLV_AFC_SEND_TEST_FRAME, "AFC_SEND_TEST_FRAME" },
     { TLV_AFC_BANDWIDTH, "AFC_BANDWIDTH" },
     { TLV_AFC_CA_CERT, "AFC_CA_CERT" },
+    { TLV_AFC_CONNECT_SP_AP, "AFC_CONNECT_SP_AP" },    
 };
 
 /* Find the type of the API stucture by the ID from the list */

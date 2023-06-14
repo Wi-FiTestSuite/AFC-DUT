@@ -129,6 +129,18 @@ class AFCParams(int, Enum):
     #  @note TLV Length: 0x01, Value: 0 - 20MHz, 1 - 40MHz, 2 - 80MHz, 3 - 160MHz, 4 - 320MHz
     SEND_TEST_FRAME = 0xB01E
 
+    ## @brief Specifies DUT's bandwidth
+    #  @note TLV Length: 0x01, Value: 0 - 20MHz, 1 - 40MHz, 2 - 80MHz, 3 - 160MHz, 4 - 320MHz
+    BANDWIDTH = 0xB01F
+
+    ## @brief Defines the Root certificate file configured on DUT
+    #  @note TLV Length: Variable, Value: String
+    CA_CERT = 0xB020
+
+    ## @brief Trigger DUT to initiate connection procedure between AFC DUT and SP Access Point
+    #  @note TLV Length: 0x01, Value: 0(Reserved) or 1
+    CONNECT_SP_AP = 0xB021
+
 class GeoArea(str, Enum):
     Ellipse = "0"
     LinearPolygon = "1"
@@ -145,6 +157,15 @@ class TestFrameBandwidth(str, Enum):
     BW80  = "2"
     BW160 = "3"
     BW320 = "4"
+
+class SpectrumRequestType(str, Enum):
+    Default    = "0"
+    Channel    = "1"
+    Frequency  = "2"
+
+class FixedClientSendRequestMethod(str, Enum):
+    InBand    = "In-band"
+    OutOfBand    = "Out-of-band"
 
 class AFCResponseTLV(int, Enum):
     """List of TLV used in the QuickTrack API response and ACK messages from the DUT"""

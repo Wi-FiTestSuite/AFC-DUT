@@ -220,6 +220,11 @@ static int afcd_operation_handler(struct packet_wrapper *req, struct packet_wrap
             indigo_logger(LOG_LEVEL_DEBUG, "Trigger DUT to send test frames for 160MHz bandwidth");
         }
     }
+    tlv = find_wrapper_tlv_by_id(req, TLV_AFC_CONNECT_SP_AP);
+    if (tlv) {
+        indigo_logger(LOG_LEVEL_DEBUG, "Trigger AFC DUT to initiate connection procedure between AFC DUT and SP Access Point");
+        /* Vendor specific */
+    }
 
     fill_wrapper_message_hdr(resp, API_CMD_RESPONSE, req->hdr.seq);
     fill_wrapper_tlv_byte(resp, TLV_STATUS, TLV_VALUE_STATUS_OK);

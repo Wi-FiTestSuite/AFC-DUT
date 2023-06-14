@@ -4,7 +4,7 @@ import re
 
 vectors = {"vectors": []}
 
-wb = load_workbook("AFC Device (DUT) Compliance Test Vectors v0.0.1.xlsx")
+wb = load_workbook("AFC Device (DUT) Compliance Test Vectors v1.0.xlsx")
 
 ws = wb.worksheets[4]
 
@@ -72,16 +72,16 @@ for row in range(7, 25):
             print(f'gobalOperatingClass {data[i]}')
             if not InquiryResponse.get("availableChannelInfo"):
                 InquiryResponse["availableChannelInfo"] = []
-            channelCfi = re.findall('([^,\t\n ]+)', str(data[i+1]))
+            channelCfi = re.findall('([^,"\t\n ]+)', str(data[i+1]))
             print(f"channelCfi {channelCfi} len {len(channelCfi)}")
-            maxEirp = re.findall('([^,\t\n ]+)', str(data[i+2]))
+            maxEirp = re.findall('([^,"\t\n ]+)', str(data[i+2]))
             print(f"maxEirp    {maxEirp} len {len(maxEirp)}")
-            if len(maxEirp) == 1 and maxEirp[0] == 'NULL':
+            if len(maxEirp) == 1 and (maxEirp[0] == 'NULL' or maxEirp[0] == 'None'):
                 continue
             InquiryResponse["availableChannelInfo"].append({
-                                 "channelCfi":  [int(item) for idx, item in enumerate(channelCfi) if item != "NULL" and len(maxEirp) > idx and maxEirp[idx] != 'NULL' ],
+                                 "channelCfi":  [int(item) for idx, item in enumerate(channelCfi) if item and item != "NULL" and len(maxEirp) > idx and maxEirp[idx] and maxEirp[idx] != 'NULL' ],
                                 "globalOperatingClass": data[i],
-                                "maxEirp": [float(item) for item in maxEirp if item != "NULL"]
+                                "maxEirp": [float(item) for item in maxEirp if item and item != "NULL"]
                             })    
     #vec["row"] = row # debug
     #vec["tc_id_row"] = tc_id_row # debug

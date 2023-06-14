@@ -10,7 +10,7 @@
         "availableSpectrumInquiryResponses": [
             {
                 "response": {
-                    "responseCode": null,
+                    "responseCode": 0,
                     "shortDescription": "SUCCESS"
                 },
                 "availableFrequencyInfo": [

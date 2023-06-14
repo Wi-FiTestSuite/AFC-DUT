@@ -32,14 +32,14 @@ class RfMeasurementValidation:
 
     def __init__(self, sent_response, rf_report):
         self.center_freq_allowed_max_psd = 0
+        self.debug_printed_freq = set()
 
         if rf_report:
             self.rf_report = rf_report        
             self.center_freq = rf_report["rfMeasurementReport"]["centralFreq"]
             self.chwidth = rf_report["rfMeasurementReport"]["channelWidth"]
             self.packets = rf_report["rfMeasurementReport"]["data"]
-            self.center_chan = (self.center_freq -5950) / 5
-            self.debug_printed_freq = set()
+            self.center_chan = (self.center_freq -5950) / 5            
 
         if sent_response:
             self.sent_response = sent_response
@@ -52,15 +52,13 @@ class RfMeasurementValidation:
     def validate_rf_measurement_by_freq(self):
         try:
             if not self.rf_report:
-                return False
-            if not self.__validate_transmit_power_by_freq():
-                return False
-            if not self.__validate_psd_adjacent_frequencies():
-                return False
-            return True
+                return False, False
+            power_valid = self.__validate_transmit_power_by_freq()
+            adjacent_valid = self.__validate_psd_adjacent_frequencies()                
+            return power_valid, adjacent_valid
         except Exception as err:            
             Logger.log(LogCategory.ERROR, f'validate_rf_measurement_by_freq Exception: {err}')
-            return False
+            return False, False
 
     def validate_rf_measurement_by_chan(self):
         try:
@@ -74,17 +72,16 @@ class RfMeasurementValidation:
     def validate_rf_measurement_by_both(self):
         try:
             if not self.rf_report:
-                return False
+                return False, False
             if not self.__validate_transmit_power_by_freq():
-                return False
+                return False, False
             if not self.__validate_transmit_power_by_chan():
-                return False
-            if not self.__validate_psd_adjacent_frequencies():
-                return False
-            return True
+                return False, False
+            adjacent_valid = self.__validate_psd_adjacent_frequencies()
+            return True, adjacent_valid
         except Exception as err:            
             Logger.log(LogCategory.ERROR, f'validate_rf_measurement_by_both Exception: {err}')
-            return False
+            return False, False
 
     def validate_lpi_transmit_power(self):
         try:
@@ -93,11 +90,26 @@ class RfMeasurementValidation:
                 return False
             for pkt in self.packets:
                 if pkt["maxPSD"] > 5.0:
-                    Logger.log(LogCategory.ERROR, f'Packet maxPSD {pkt["maxPSD"]} is above LPI limits 5 PSD(dBm/MHz)')
+                    Logger.log(LogCategory.ERROR, f'Packet maxPSD {pkt["maxPSD"]} is above LPI limits 5 dBm/MHz PSD')
                     return False
             return True
-        except Exception as err:            
+        except Exception as err:
             Logger.log(LogCategory.ERROR, f'validate_lpi_transmit_power Exception: {err}')
+            return False
+
+    def validate_fc_transmit_power(self, criteria_psd):
+        try:
+            if not self.packets:
+                Logger.log(LogCategory.ERROR, f'No data in rfMeasurementReport')
+                return False
+            for pkt in self.packets:
+                if pkt["maxPSD"] > criteria_psd:
+                    Logger.log(LogCategory.ERROR, f'Packet maxPSD {pkt["maxPSD"]} is above limits {criteria_psd} dBm/MHz PSD')
+                    return False
+            return True
+        except Exception as err:
+            Logger.log(LogCategory.ERROR, f'validate_fc_transmit_power Exception: {err}')
+            return False
 
     def __validate_psd_adjacent_frequencies(self):
         if not self.resp_avail_freq_info and self.packets:
@@ -116,14 +128,18 @@ class RfMeasurementValidation:
 
     def __validate_psd(self, freq, chwidth, psdDbmMHz):
         match_freq_ranges = self.__get_match_freq_ranges(freq, chwidth)
-        if not match_freq_ranges:            
-            if self.center_freq_allowed_max_psd:
-                allowed_max_psd = self.center_freq_allowed_max_psd
-                Logger.log(LogCategory.DEBUG, f'__validate_psd : freq {freq} chwidth {chwidth}, can not find matched frequence ranges in availableSpectrumInquiryResponses.')
-                Logger.log(LogCategory.DEBUG, f'Use center_freq {self.center_freq} allowed_max_psd {allowed_max_psd}')
-            else:
-                Logger.log(LogCategory.ERROR, f'__validate_psd : freq {freq} chwidth {chwidth}, can not find matched frequence ranges in availableSpectrumInquiryResponses.')
-                return False
+        # if not match_freq_ranges:
+        #     if self.center_freq_allowed_max_psd:
+        #         allowed_max_psd = self.center_freq_allowed_max_psd
+        #         Logger.log(LogCategory.DEBUG, f'__validate_psd : freq {freq} chwidth {chwidth}, can not find matched frequence ranges in availableSpectrumInquiryResponses.')
+        #         Logger.log(LogCategory.DEBUG, f'Use center_freq {self.center_freq} allowed_max_psd {allowed_max_psd}')
+        #     else:
+        #         Logger.log(LogCategory.ERROR, f'__validate_psd : freq {freq} chwidth {chwidth}, can not find matched frequence ranges in availableSpectrumInquiryResponses.')
+        #         return False
+        if not match_freq_ranges and (self.center_freq != freq):
+            # We don't have to check PSD values for adjacent frequencies
+            #   that are not available in the AFC response mask.
+            return True
         else:
             allowed_max_psd = min([psd for l,h,psd in match_freq_ranges])
             if not self.center_freq_allowed_max_psd and (self.center_freq == freq):
@@ -171,7 +187,7 @@ class RfMeasurementValidation:
 
         max_eirp = get_channel_max_eirp(self.center_chan, self.resp_avail_chan_info)
         if not max_eirp:
-            Logger.log(LogCategory.ERROR, f'Can not find maxEirp of availableChannelInfo in availableSpectrumInquiryResponses.')
+            Logger.log(LogCategory.ERROR, f'channelCfi {self.center_chan} is not avaliable in availableChannelInfo of availableSpectrumInquiryResponses.')
             return False
 
         for pkt in self.packets:
@@ -195,6 +211,25 @@ class RfMeasurementValidation:
             Logger.log(LogCategory.DEBUG, f'freq {freq} chwidth {chwidth} freq_range {freq_range}')
             Logger.log(LogCategory.DEBUG, f'match_freq_range {match_freq_range}')
         return match_freq_range
+    
+    def get_sp_limit_by_freq(self, freq, chwidth):
+        match_freq_ranges = self.__get_match_freq_ranges(freq, chwidth)
+        if match_freq_ranges:
+            return min([psd for l,h,psd in match_freq_ranges])
+        else:
+            return None
+
+    def get_sp_limit_by_chan(self, channel):
+        max_eirp = get_channel_max_eirp(channel, self.resp_avail_chan_info)
+        if not max_eirp:
+            Logger.log(LogCategory.ERROR, f'channelCfi {channel} is not avaliable in availableChannelInfo of availableSpectrumInquiryResponses..')
+            return None
+        return max_eirp
+
+    def get_sp_limit_by_both(self, channel, chwidth):
+        psd = self.get_sp_limit_by_freq(int(5950 + channel*5), chwidth)
+        eirp = self.get_sp_limit_by_chan(channel)
+        return psd, eirp
 
 def is_matched_freq_range(resp_freq_range, report_freq_range):
     l, h = resp_freq_range
@@ -212,3 +247,5 @@ def get_channel_max_eirp(channel, resp_chan_info):
             return max_eirp
 
     return None
+
+

@@ -26,9 +26,6 @@ from afc_simulator_service_api import afc_simulator_api_blueprint
 from commons.microservices_helper import MicroserviceHelper
 
 service_name = "PY_AFC_SIMULATOR"
-indigo_configs_path = "/var/log/indigo_configs/"
-crt_path = os.path.abspath("./QuickTrack-Tool/Test-Services/AppData/testserver_wfatestorg_org.crt")
-key_path = os.path.abspath("./QuickTrack-Tool/Test-Services/AppData/testserver.wfatestorg.org.key")
 
 def run_app():
     """Start AFC simulator microservice
@@ -41,12 +38,11 @@ def run_app():
 
     app = Flask(__name__)
     app.config["ENV"] = os.environ.get("ENV_MODE")
-    service_port = 443
+    service_port = 5000
     app.config.swagger_ui_doc_expansion = "list"  # Initial expansion state
     MicroserviceHelper(service_name, service_port)
     app.register_blueprint(afc_simulator_api_blueprint)
-    print(os.path.abspath(os.curdir))
-    app.run(host="0.0.0.0", port=service_port, ssl_context=(crt_path, key_path))
+    app.run(host="0.0.0.0", port=service_port)
 
 
 if __name__ == "__main__":
