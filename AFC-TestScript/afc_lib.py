@@ -25,7 +25,7 @@ from IndigoTestScripts.helpers.instruction_lib import InstructionLib
 
 class AFCLib:
     @staticmethod
-    def set_afc_response(purpose, test_vector, phase=None, resp_wait_time=0, hold_response=False, random=False, only_random_power=False):
+    def set_afc_response(purpose, test_vector, phase=None, resp_wait_time=0, hold_response=False, random=False, only_random_power=False, difference_last_picks=False):
         setting = {
             "unitUnderTest": "AFCD",
             "testVector": test_vector,
@@ -42,10 +42,10 @@ class AFCLib:
 
         if random:
             setting["random"] = True
+            if difference_last_picks:
+                setting["difference_last_picks"] = True
 
-        if "RSA" in purpose:
-            setting["random"] = True
-        elif "SAU" in purpose:
+        if "SAU" in purpose:
             setting["random"] = True
             if phase == 2:
                 setting["difference_last_picks"] = True            

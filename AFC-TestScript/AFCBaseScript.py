@@ -81,6 +81,7 @@ class AFCBaseScript(TestScript):
             reg_conf
         )        
         self.power_cycle_timeout = InstructionLib.get_setting(SettingsName.AFCD_POWER_CYCLE_TIMEOUT)
+        self.delay_apply_follow_on_response = InstructionLib.get_setting(SettingsName.AFCD_APPLY_POWER_LIMIT_DELAY)
         op_type = InstructionLib.get_setting(SettingsName.SPECTRUM_ANALYZER_OP_TYPE)
         if "manual" in op_type.lower():
             self.auto_rf_tester = False

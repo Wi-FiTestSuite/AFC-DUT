@@ -35,7 +35,7 @@ class CT_AFC_FC_STA_AFCDRSA31_FrequencyChannel_20MHz_10654_1(AFCBaseScript):
         """Setting up all the pre-requisites required for test case execution
         """
         InstructionLib.send_script_status(
-            "Step 8: Resetting the AFC DUT to its Initial Pre-test State", 10
+            "Step 13: Resetting the AFC DUT to its Initial Pre-test State", 10
         )
         super().setup()
         self.afc_config[AFCParams.BANDWIDTH.value] = TestFrameBandwidth.BW20.value
@@ -47,7 +47,7 @@ class CT_AFC_FC_STA_AFCDRSA31_FrequencyChannel_20MHz_10654_1(AFCBaseScript):
             InstructionLib.log_error("Please configure the correct Tester IP Address setting")
 
         InstructionLib.send_script_status(
-            "Step 9 : Configure the AFC DUT", 15
+            "Step 14 : Configure the AFC DUT", 15
         )
         # setup() in AFCBaseScript created afc_config
         InstructionLib.afcd_configure(self.afc_config)
@@ -56,43 +56,45 @@ class CT_AFC_FC_STA_AFCDRSA31_FrequencyChannel_20MHz_10654_1(AFCBaseScript):
         # InstructionLib.append_measurements(
         #     "AFC_DUT_SP_OPERATION", sp_operation, measure_desc["AFC_DUT_SP_OPERATION"])
 
-        AFCLib.set_afc_response("RSA", test_vector=3, only_random_power=True)
+        AFCLib.set_afc_response("RSA", test_vector=3, random=True, only_random_power=True)
 
         InstructionLib.send_script_status(
-            "Step 10 : Send an Available Spectrum Inquiry Request", 20
+            "Step 15 : Send an Available Spectrum Inquiry Request", 20
         )
         InstructionLib.afcd_operation({AFCParams.SEND_SPECTRUM_REQ.value: SpectrumRequestType.Default.value})
 
         InstructionLib.send_script_status(
-            "Step 11 : AFC Test Harness validates mandatory registration information", 40
+            "Step 16 : AFC Test Harness validates mandatory registration information", 25
         )
         manual_mode = InstructionLib.get_setting(SettingsName.MANUAL_DUT_MODE)
         if not manual_mode:
             InstructionLib.wait(10)
         InstructionLib.send_script_status(
-            "Step 12 : AFC Test Harness sends an Available Spectrum Inquiry Response", 60
+            "Step 17 : AFC Test Harness sends an Available Spectrum Inquiry Response", 30
         )
         # Get response from AFC Server
         afc_resp = AFCLib.get_afc_status()
         if afc_resp["receivedRequest"]:
-            InstructionLib.append_measurements("AFC_DUT_SEND_SPECTRUM_INQUIRYREQUEST", True, measure_desc["AFC_DUT_SEND_SPECTRUM_INQUIRYREQUEST"])
+            recv_req = True            
         else:
-            InstructionLib.append_measurements("AFC_DUT_SEND_SPECTRUM_INQUIRYREQUEST", False, measure_desc["AFC_DUT_SEND_SPECTRUM_INQUIRYREQUEST"])
+            recv_req = False
+        InstructionLib.append_measurements("AFC_DUT_SEND_SPECTRUM_INQUIRYREQUEST_1", recv_req, measure_desc["AFC_DUT_SEND_SPECTRUM_INQUIRYREQUEST"])
+        if not recv_req:
             InstructionLib.log_info("AFC DUT doesn't send Spectrum Inquiry Request, Stopping test execution.")
             return
 
         req_valid = super().verify_req_infor(afc_resp)
-        InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_1", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
 
         fc_req_method = InstructionLib.get_setting(SettingsName.AFCD_FC_SEND_REQ_METHOD)
         if fc_req_method == FixedClientSendRequestMethod.OutOfBand.value:
             InstructionLib.send_script_status(
-                "Step 13 : Initiate connection procedure between AFC DUT and SP Access Point", 70
+                "Step 18 : Initiate connection procedure between AFC DUT and SP Access Point", 40
             )
             InstructionLib.afcd_operation({AFCParams.CONNECT_SP_AP.value: "1"})
 
         InstructionLib.send_script_status(
-            "Step 14 : RF Test Equipment verification", 80
+            "Step 19 : RF Test Equipment verification", 50
         )
         InstructionLib.wait(60)
 
@@ -101,15 +103,75 @@ class CT_AFC_FC_STA_AFCDRSA31_FrequencyChannel_20MHz_10654_1(AFCBaseScript):
         resp = InstructionLib.afcd_get_info({})
         if resp.status != 0:
             InstructionLib.log_info("Getting infor from AFC DUT Failed!")
-            InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE", False, measure_desc["AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE"])
+            InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE_1", False, measure_desc["AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE"])
             return
         else:
             InstructionLib.log_debug("Response: {}".format(resp.tlvs))
             op_channel = int(resp.tlvs.get(AFCResponseTLV.OPER_CHANNEL.value))
 
-        power_valid, adjacent_valid = super().validate_rf_measurement_by_both(afc_resp["sentResponse"], op_channel, "rfMeasurementReport_step_14.json", op_bandwidth=20)
-        InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE", power_valid, self.power_valid_desc)
-        InstructionLib.append_measurements("AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS", adjacent_valid, measure_desc["AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS"])
+        power_valid, adjacent_valid = super().validate_rf_measurement_by_both(afc_resp["sentResponse"], op_channel, "rfMeasurementReport_step_19.json", op_bandwidth=20)
+        InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE_1", power_valid, self.power_valid_desc)
+        InstructionLib.append_measurements("AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS_1", adjacent_valid, measure_desc["AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS"])
+
+        ###################  phase 2  #####################
+        AFCLib.set_afc_response("RSA", test_vector=3, random=True, only_random_power=True)
+        InstructionLib.send_script_status(
+            "Step 20 : Trigger the AFC DUT to send to the AFC DUT Test Harness an Available Spectrum Inquiry Request", 55
+        )
+        InstructionLib.afcd_operation({AFCParams.SEND_SPECTRUM_REQ.value: SpectrumRequestType.Default.value})
+
+        InstructionLib.send_script_status(
+            "Step 21 : Send an Available Spectrum Inquiry Request", 60
+        )
+
+        InstructionLib.send_script_status(
+            "Step 22 : AFC Test Harness validates mandatory registration information", 65
+        )
+        manual_mode = InstructionLib.get_setting(SettingsName.MANUAL_DUT_MODE)
+        if not manual_mode:
+            InstructionLib.wait(10)
+        InstructionLib.send_script_status(
+            "Step 23 : AFC Test Harness sends an Available Spectrum Inquiry Response", 70
+        )
+        # Get response from AFC Server
+        afc_resp = AFCLib.get_afc_status()
+        if afc_resp["receivedRequest"]:
+            recv_req = True            
+        else:
+            recv_req = False
+        InstructionLib.append_measurements("AFC_DUT_SEND_SPECTRUM_INQUIRYREQUEST_2", recv_req, measure_desc["AFC_DUT_SEND_SPECTRUM_INQUIRYREQUEST"])
+        if not recv_req:
+            InstructionLib.log_info("AFC DUT doesn't send Spectrum Inquiry Request, Stopping test execution.")
+            return
+
+        req_valid = super().verify_req_infor(afc_resp)
+        InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_2", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+
+        if fc_req_method == FixedClientSendRequestMethod.OutOfBand.value:
+            InstructionLib.send_script_status(
+                "Step 24 : Initiate connection procedure between AFC DUT and SP Access Point", 80
+            )
+            InstructionLib.afcd_operation({AFCParams.CONNECT_SP_AP.value: "1"})
+
+        InstructionLib.send_script_status(
+            "Step 25 : RF Test Equipment verification", 90
+        )
+        InstructionLib.wait(self.delay_apply_follow_on_response)
+
+        #InstructionLib.afcd_operation({AFCParams.SEND_TEST_FRAME.value: TestFrameBandwidth.BW20.value})
+
+        resp = InstructionLib.afcd_get_info({})
+        if resp.status != 0:
+            InstructionLib.log_info("Getting infor from AFC DUT Failed!")
+            InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE_2", False, measure_desc["AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE"])
+            return
+        else:
+            InstructionLib.log_debug("Response: {}".format(resp.tlvs))
+            op_channel = int(resp.tlvs.get(AFCResponseTLV.OPER_CHANNEL.value))
+
+        power_valid, adjacent_valid = super().validate_rf_measurement_by_both(afc_resp["sentResponse"], op_channel, "rfMeasurementReport_step_25.json", op_bandwidth=20)
+        InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE_2", power_valid, self.power_valid_desc)
+        InstructionLib.append_measurements("AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS_2", adjacent_valid, measure_desc["AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS"])
 
     def teardown(self):
         """Method to reset the AFC DUT after test execution."""
