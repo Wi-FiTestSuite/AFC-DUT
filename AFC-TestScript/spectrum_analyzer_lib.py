@@ -45,7 +45,9 @@ class SpectrumAnalyzerLib:
         op_type = InstructionLib.get_setting(SettingsName.SPECTRUM_ANALYZER_OP_TYPE)
         if "litepoint" in op_type.lower():
             vendor = "litepoint"
-        
+        elif "rohde_schwarz" in op_type.lower():
+            vendor = "rohde_schwarz"
+
         # Uncomment this line for new RF equipment vendor and we can
         #     implement the codes in spectrum_analyzer_vendor_sample.py
         # vendor = "vendor_sample"
