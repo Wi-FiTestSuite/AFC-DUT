@@ -56,7 +56,7 @@ class CT_AFC_FC_STA_AFCDRSA31_FrequencyChannel_160MHz_10657_1(AFCBaseScript):
         # InstructionLib.append_measurements(
         #     "AFC_DUT_SP_OPERATION", sp_operation, measure_desc["AFC_DUT_SP_OPERATION"])
 
-        AFCLib.set_afc_response("RSA", test_vector=3, random=True, only_random_power=True)
+        AFCLib.set_afc_response("RSA", test_vector=3, random=True, only_random_power=True, channel_width=160)
 
         InstructionLib.send_script_status(
             "Step 15 : Send an Available Spectrum Inquiry Request", 20
@@ -85,6 +85,9 @@ class CT_AFC_FC_STA_AFCDRSA31_FrequencyChannel_160MHz_10657_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_1", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         fc_req_method = InstructionLib.get_setting(SettingsName.AFCD_FC_SEND_REQ_METHOD)
         if fc_req_method == FixedClientSendRequestMethod.OutOfBand.value:
@@ -114,7 +117,7 @@ class CT_AFC_FC_STA_AFCDRSA31_FrequencyChannel_160MHz_10657_1(AFCBaseScript):
         InstructionLib.append_measurements("AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS_1", adjacent_valid, measure_desc["AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS"])
 
         ###################  phase 2  #####################
-        AFCLib.set_afc_response("RSA", test_vector=3, random=True, only_random_power=True)
+        AFCLib.set_afc_response("RSA", test_vector=3, random=True, only_random_power=True, channel_width=160)
         InstructionLib.send_script_status(
             "Step 20 : Trigger the AFC DUT to send to the AFC DUT Test Harness an Available Spectrum Inquiry Request", 55
         )
@@ -146,6 +149,9 @@ class CT_AFC_FC_STA_AFCDRSA31_FrequencyChannel_160MHz_10657_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_2", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         if fc_req_method == FixedClientSendRequestMethod.OutOfBand.value:
             InstructionLib.send_script_status(

@@ -42,6 +42,23 @@ filename_prefix = "default"
 hold_response = False
 script_test_vector = 0
 inquiry_file = None
+country_code = 'US'
+
+def rulesetId_to_countrycode(rulesetId):
+    map = {
+        'US_47_CFR_PART_15_SUBPART_E':'US',
+        'CA_RES_DBS-06':'CA'
+    }
+    rulesetId = rulesetId.upper()
+    if rulesetId in map:
+        return map[rulesetId]
+    else:
+        return None
+
+certification = {
+    'US' : 'FCC',
+    'CA' : 'ISED',
+}
 
 api = Api(
     app=afc_simulator_api_blueprint,
@@ -158,9 +175,16 @@ class AvailableSpectrum(Resource):
             ruleset_ids = []
             if version == "1.4":
                 for certId in dev_desc['certificationId']:
-                    Logger.log(LogCategory.DEBUG, f"certificationId - rulesetId {certId['rulesetId']} id {certId['id']}")
-                    if isinstance(certId['rulesetId'], str):
-                        ruleset_ids.append(certId['rulesetId'])
+                    rulesetId = certId['rulesetId']
+                    Logger.log(LogCategory.DEBUG, f"certificationId - rulesetId {rulesetId} id {certId['id']}")
+                    if isinstance(rulesetId, str):
+                        if rulesetId_to_countrycode(rulesetId) == country_code:
+                            ruleset_ids.append(rulesetId)
+                        else:
+                            err_str = f"invalid rulesetId {rulesetId} for {certification[country_code]} AFC DUT test"
+                            Logger.log(LogCategory.ERROR, err_str)
+                            return Response(json.dumps(gen_err_resp(req_id, -1, err_str, version)),
+                                mimetype="application/json", status=200)
                     else:
                         Logger.log(LogCategory.ERROR, f'invalidParams rulesetId: DATA TYPE should be string')
                         return Response(json.dumps(gen_err_resp(req_id, 103, "One or more fields have an invalid value.", version, {"invalidParams": ["rulesetId"]})),
@@ -198,11 +222,11 @@ class AvailableSpectrum(Resource):
                                 mimetype="application/json", status=200)
 
             field = "inquiredChannels"
-            oper_class_list = []
+            oper_class_dict = {}
             if field in req:
-                oper_class_list = [item["globalOperatingClass"] for item in req[field]]
-                Logger.log(LogCategory.DEBUG, f'Inquired globalOperatingClass list {oper_class_list}')
-                if len(oper_class_list) > 0:
+                oper_class_dict = {item["globalOperatingClass"]: item["channelCfi"] if "channelCfi" in item else None for item in req[field]}
+                Logger.log(LogCategory.DEBUG, f'Inquired globalOperatingClass list {oper_class_dict}')
+                if len(oper_class_dict) > 0:
                     has_channel = True
             field = "inquiredFrequencyRange"
             freq_range_list = []
@@ -238,7 +262,7 @@ class AvailableSpectrum(Resource):
         Logger.log(LogCategory.DEBUG, f'test vector {vec} filename_prefix {filename_prefix}')
         if vec:
             if filename_prefix == "default":
-                filename = filename_prefix + ".json"
+                filename = f"{filename_prefix}_{country_code}.json"
             elif phase:
                 filename = filename_prefix + vec + f"_phase{phase}.json"
             else:
@@ -275,8 +299,24 @@ class AvailableSpectrum(Resource):
                     chan_info = resp[field]
                     resp[field] = []
                     for item in chan_info:
-                        if item["globalOperatingClass"] in oper_class_list:
-                            resp[field].append(item)
+                        if item["globalOperatingClass"] in oper_class_dict:
+                            resp_chans_list = item["channelCfi"]
+                            resp_chans_set = set(resp_chans_list)
+                            req_chans_list = oper_class_dict[item["globalOperatingClass"]]
+                            if req_chans_list:
+                                req_chans_set = set(req_chans_list)
+                                if req_chans_set & resp_chans_set:
+                                    overlay_chans = []
+                                    overlay_maxeirp = []
+                                    for idx, chan in enumerate(resp_chans_list):
+                                        if chan in req_chans_set:
+                                            overlay_chans.append(chan)
+                                            overlay_maxeirp.append(item["maxEirp"][idx])
+                                    item["channelCfi"] = overlay_chans
+                                    item["maxEirp"] = overlay_maxeirp
+                                    resp[field].append(item)
+                            else:
+                                resp[field].append(item)
 
                 field = "availableFrequencyInfo"
                 if field in resp:
@@ -316,6 +356,7 @@ class SetResponse(Resource):
         global phase
         global hold_response
         global script_test_vector
+        global country_code
         tc = request.json
  
         try:
@@ -335,6 +376,8 @@ class SetResponse(Resource):
             if "holdResponse" in tc:
                 hold_response = tc["holdResponse"]
                 Logger.log(LogCategory.DEBUG, f'holdResponse {hold_response}')
+            if "countryCode" in tc:
+                country_code = tc["countryCode"]
 
             response = {"message": "Success"}
             return Response(json.dumps(response), mimetype="application/json", status=200)

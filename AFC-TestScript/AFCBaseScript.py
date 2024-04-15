@@ -37,6 +37,7 @@ class AFCBaseScript(TestScript):
         InstructionLib.set_dut_type(dut_type)
         self.auto_rf_tester = True
         self.power_valid_desc = "AFC DUT conforms to the conditons in the Spectrum Inquiry Response"
+        self.afcd_country_code = InstructionLib.get_setting(SettingsName.AFCD_COUNTRY_CODE)
 
     def setup(self, http_conf = "afc-https-default", stop_ocsp = False):
         InstructionLib.afcd_operation({AFCParams.DEVICE_RESET.value: 1})
@@ -68,9 +69,9 @@ class AFCBaseScript(TestScript):
         if self.need_reg_conf:
             self.geo_area = InstructionLib.get_setting(SettingsName.AFCD_GEOGRAPHIC_TYPE)
             reg_conf = AFCBaseScript.combine_configs(
-                AFCBaseScript.dev_desc_conf(),
-                AFCBaseScript.location_conf(geo_area=self.geo_area),
-                AFCBaseScript.freq_channel_conf(),
+                AFCBaseScript.dev_desc_conf(afcd_country_code=self.afcd_country_code),
+                AFCBaseScript.location_conf(geo_area=self.geo_area, afcd_country_code=self.afcd_country_code),
+                AFCBaseScript.freq_channel_conf(afcd_country_code=self.afcd_country_code),
                 AFCBaseScript.misc_conf()
             )
         else:
@@ -322,18 +323,36 @@ class AFCBaseScript(TestScript):
 
     @staticmethod
     def dev_desc_conf(serial_number="SN000",
-            cert_id="CID000", rule_id="US_47_CFR_PART_15_SUBPART_E"):
+            cert_id="CID000", afcd_country_code="US"):
         dev_config = {}
+        mapping = {
+            'US' : 'US_47_CFR_PART_15_SUBPART_E',
+            'CA': 'CA_RES_DBS-06'
+        }
+        if afcd_country_code in mapping:
+            ruleset_id = mapping[afcd_country_code]
+        else:
+            ruleset_id = 'US_47_CFR_PART_15_SUBPART_E'
         dev_config[AFCParams.SERIAL_NUMBER.value] = serial_number
         dev_config[AFCParams.CERT_ID.value] = cert_id
-        dev_config[AFCParams.RULE_SET_ID.value] = rule_id
+        dev_config[AFCParams.RULE_SET_ID.value] = ruleset_id
 
         return dev_config
 
     @staticmethod
-    def location_conf(geo_area="Ellipse", longitude="-121.98586998164663",
-            latitude="37.38193354300452", major_axis=150, minor_axis=150, orient=0, boundary=None,
+    def location_conf(geo_area="Ellipse", afcd_country_code="US", loc_idx = 0, major_axis=150, minor_axis=150, orient=0, boundary=None,
             height=15, height_type="AGL", vert_uncert=2, deploy=Deployment.Unknown.value):
+        mapping = {'US': [{"longitude": "-121.98586998164663", "latitude": "37.38193354300452",
+                            "boundary": "-121.9875329371091,37.382479218209305 -121.98371347155712,37.38271792164739 -121.98558028898755,37.37992163368795"},
+                          {"longitude": "-97.73618564630566", "latitude": "30.401878963715333",
+                            "boundary": "-97.7375329371091,30.402479218209305 -97.73371347155712,30.40271792164739 -97.73558028898755,30.40992163368795"}],
+                   'CA': [{"longitude": "-75.70159962256518", "latitude": "45.420456011708055",
+                            "boundary": "-75.7075329371091,45.422479218209305 -75.70371347155712,45.42271792164739 -75.70558028898755,45.42992163368795"},
+                          {"longitude": "-106.66750238414373", "latitude": "52.15676450871561",
+                            "boundary": "-106.6675329371091,52.152479218209305 -106.66371347155712,52.15271792164739 -106.66558028898755,52.15992163368795"}]}
+        longitude = mapping[afcd_country_code][loc_idx]["longitude"]
+        latitude = mapping[afcd_country_code][loc_idx]["latitude"]
+        boundary = mapping[afcd_country_code][loc_idx]["boundary"]
         loca_config = {}
         if geo_area == "Ellipse":
             loca_config[AFCParams.LOCATION_GEO_AREA.value] = GeoArea.Ellipse.value
@@ -343,15 +362,11 @@ class AFCBaseScript(TestScript):
             loca_config[AFCParams.ELLIPSE_ORIENTATION.value] = orient
         elif geo_area == "LinearPolygon":
             loca_config[AFCParams.LOCATION_GEO_AREA.value] = GeoArea.LinearPolygon.value
-            if boundary is None:
-                boundary = "-121.9875329371091,37.382479218209305 -121.98371347155712,37.38271792164739 -121.98558028898755,37.37992163368795"
             loca_config[AFCParams.LINEARPOLY_BOUNDARY.value] = boundary
         elif geo_area == "RadialPolygon":
             loca_config[AFCParams.LOCATION_GEO_AREA.value] = GeoArea.RadialPolygon.value
             loca_config[AFCParams.RADIALPOLY_CENTER.value] = longitude + "," + latitude
-            if boundary is None:
-                boundary = "30,150 120,150 90,150"
-            loca_config[AFCParams.RADIALPOLY_BOUNDARY.value] = boundary
+            loca_config[AFCParams.RADIALPOLY_BOUNDARY.value] = "30,150 120,150 90,150"
 
         loca_config[AFCParams.HEIGHT.value] = height
         loca_config[AFCParams.HEIGHT_TYPE.value] = height_type
@@ -361,7 +376,10 @@ class AFCBaseScript(TestScript):
         return loca_config
 
     @staticmethod
-    def freq_channel_conf(freq="5925,6425 6525,6875", op_class="131 132 133 134 136", channel=None):
+    def freq_channel_conf(afcd_country_code="US", op_class="131 132 133 134 136", channel=None):
+        mapping = {'US' : "5925,6425 6525,6875",
+                   'CA' : "5925,6875"}
+        freq = mapping[afcd_country_code]
         req_config = {}
         # if type is list, casting to string
         if type(freq) is list:

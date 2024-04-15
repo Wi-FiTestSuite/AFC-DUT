@@ -1,0 +1,15 @@
+{
+    "description": "Default response before configuring test vector",
+    "responses": {
+        "availableSpectrumInquiryResponses": [
+            {
+                "response": {
+                    "responseCode": 0,
+                    "shortDescription": "SUCCESS"
+                },
+                "availableFrequencyInfo": [],
+                "availableChannelInfo": []
+            }
+        ]
+    }
+}

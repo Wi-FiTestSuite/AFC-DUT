@@ -22,10 +22,11 @@ import os
 import subprocess
 import shutil
 from IndigoTestScripts.helpers.instruction_lib import InstructionLib
+from commons.shared_enums import SettingsName
 
 class AFCLib:
     @staticmethod
-    def set_afc_response(purpose, test_vector, phase=None, resp_wait_time=0, hold_response=False, random=False, only_random_power=False, difference_last_picks=False):
+    def set_afc_response(purpose, test_vector, phase=None, resp_wait_time=0, hold_response=False, random=False, only_random_power=False, difference_last_picks=False, channel_width=80):
         setting = {
             "unitUnderTest": "AFCD",
             "testVector": test_vector,
@@ -42,18 +43,29 @@ class AFCLib:
 
         if random:
             setting["random"] = True
+            setting["channelWidth"] = channel_width
             if difference_last_picks:
                 setting["difference_last_picks"] = True
 
         if "SAU" in purpose:
             setting["random"] = True
+            setting["channelWidth"] = channel_width
             if phase == 2:
-                setting["difference_last_picks"] = True            
+                setting["difference_last_picks"] = True
+
+        country_code = InstructionLib.get_setting(SettingsName.AFCD_COUNTRY_CODE)
+        setting["countryCode"] = country_code
 
         requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
         res = requests.post(url="http://localhost:5000/afc-simulator-api/set-response", json=setting, verify=False)
         if res.status_code != 200:
-            InstructionLib.log_error(f"Set afc response failed, status code: {res.status_code}")
+            InstructionLib.log_error(f"afc-simulator-api: Set afc response failed, status code: {res.status_code}")
+            return None
+
+        fc_ap_setting = {"countryCode" : country_code}
+        res = requests.post(url="http://localhost:5001/afc-fc-ap-api/set-response", json=fc_ap_setting, verify=False)
+        if res.status_code != 200:
+            InstructionLib.log_error(f"afc-fc-ap-api: Set afc response failed, status code: {res.status_code}")
             return None
 
     @staticmethod

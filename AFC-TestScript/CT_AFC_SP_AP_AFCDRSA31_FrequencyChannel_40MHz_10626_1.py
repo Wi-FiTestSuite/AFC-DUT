@@ -82,6 +82,9 @@ class CT_AFC_SP_AP_AFCDRSA31_FrequencyChannel_40MHz_10626_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_1", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         InstructionLib.send_script_status(
             "Step 6 : RF Test Equipment verification", 40
@@ -136,6 +139,9 @@ class CT_AFC_SP_AP_AFCDRSA31_FrequencyChannel_40MHz_10626_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_2", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         InstructionLib.send_script_status(
             "Step 11 : RF Test Equipment verification", 90
@@ -153,7 +159,7 @@ class CT_AFC_SP_AP_AFCDRSA31_FrequencyChannel_40MHz_10626_1(AFCBaseScript):
             InstructionLib.log_debug("Response: {}".format(resp.tlvs))
             op_channel = int(resp.tlvs.get(AFCResponseTLV.OPER_CHANNEL.value))
 
-        power_valid, adjacent_valid = super().validate_rf_measurement_by_both(afc_resp["sentResponse"], op_channel, "rfMeasurementReport_step_6.json", op_bandwidth=40)
+        power_valid, adjacent_valid = super().validate_rf_measurement_by_both(afc_resp["sentResponse"], op_channel, "rfMeasurementReport_step_11.json", op_bandwidth=40)
         InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE_2", power_valid, self.power_valid_desc)
         InstructionLib.append_measurements("AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS_2", adjacent_valid, measure_desc["AFC_DUT_CONFORM_ADJACENT_FREQUENCIES_EMISSIONS_LIMITS"])
 

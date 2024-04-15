@@ -85,6 +85,9 @@ class CT_AFC_FC_STA_AFCDUSA32_Frequency_10644_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         fc_req_method = InstructionLib.get_setting(SettingsName.AFCD_FC_SEND_REQ_METHOD)
         if fc_req_method == FixedClientSendRequestMethod.OutOfBand.value:

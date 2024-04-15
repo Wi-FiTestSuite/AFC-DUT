@@ -85,6 +85,9 @@ class CT_AFC_FC_STA_AFCDSAU33_Channel_10652_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_1", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         fc_req_method = InstructionLib.get_setting(SettingsName.AFCD_FC_SEND_REQ_METHOD)
         if fc_req_method == FixedClientSendRequestMethod.OutOfBand.value:
@@ -121,14 +124,10 @@ class CT_AFC_FC_STA_AFCDSAU33_Channel_10652_1(AFCBaseScript):
 
         # New AFC configurations
         if self.need_reg_conf:
-            if self.geo_area == "LinearPolygon":
-                boundary = "-97.73483381300288,30.403118936839025 -97.73637876535906,30.400055989563008 -97.73849234601303,30.40343355438094"
-            else:
-                boundary = None
             new_reg_conf = super().combine_configs(
-                super().dev_desc_conf(),
-                super().location_conf(geo_area=self.geo_area, longitude="-97.73618564630566", latitude="30.401878963715333", boundary=boundary),
-                super().freq_channel_conf(),
+                super().dev_desc_conf(afcd_country_code=self.afcd_country_code),
+                super().location_conf(geo_area=self.geo_area, afcd_country_code=self.afcd_country_code, loc_idx=1),
+                super().freq_channel_conf(afcd_country_code=self.afcd_country_code),
                 super().misc_conf()
             )
             self.afc_config = super().combine_configs(
@@ -165,6 +164,9 @@ class CT_AFC_FC_STA_AFCDSAU33_Channel_10652_1(AFCBaseScript):
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements(
             "AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_2", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         InstructionLib.send_script_status(
             "Step 23 : AFC Test Harness waits for 60 seconds before sending an Available Spectrum Inquiry Response", 85

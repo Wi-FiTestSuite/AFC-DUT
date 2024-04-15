@@ -30,7 +30,7 @@ from commons.shared_enums import (
 )
 
 # (channel, bandwidth)
-all_channels_6g = [(15, 160), (47, 160), (79, 160), (119, 80), (143, 160), (175, 160)]
+all_channels_6g = [(15, 160), (47, 160), (79, 160), (111, 160), (143, 160), (175, 160)]
 
 class SpectrumAnalyzer:
 

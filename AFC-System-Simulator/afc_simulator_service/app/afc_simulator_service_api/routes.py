@@ -46,6 +46,51 @@ script_test_vector = 0
 inquiry_file = None
 random_picks = []
 is_random = False
+difference_last_picks = False
+only_random_power = False
+country_code = 'US'
+channel_width = 80
+country_param = {
+    'US': { 20: [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 117, 121, 125, 129, 133, 137, 141, 145, 149, 153, 157, 161, 165, 169, 173, 177, 181],
+            40: [3, 11, 19, 27, 35, 43, 51, 59, 67, 75, 83, 91, 123, 131, 139, 147, 155, 163, 171, 179],
+            80: [7, 23, 39, 55, 71, 87, 135, 151, 167],
+           160: [15, 47, 79, 143],
+           320: [31, 63],
+           "psd_min" : 8,
+           "psd_max" : 22
+          },
+    'CA': { 20: [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 97, 101, 105, 109, 113, 117, 121, 125, 129, 133, 137, 141, 145, 149, 153, 157, 161, 165, 169, 173, 177, 181],
+            40: [3, 11, 19, 27, 35, 43, 51, 59, 67, 75, 83, 91, 99, 107, 115, 123, 131, 139, 147, 155, 163, 171, 179],
+            80: [7, 23, 39, 55, 71, 87, 103, 119, 135, 151, 167],
+           160: [15, 47, 79, 111, 143],
+           320: [31, 63, 95, 127],
+           "psd_min" : 8,
+           "psd_max" : 22
+          }
+}
+chwdith_to_op_class = {
+    20 : 131,
+    40 : 132,
+    80 : 133,
+   160 : 134,
+   320 : 137
+}
+
+def rulesetId_to_countrycode(rulesetId):
+    map = {
+        'US_47_CFR_PART_15_SUBPART_E':'US',
+        'CA_RES_DBS-06':'CA'
+    }
+    rulesetId = rulesetId.upper()
+    if rulesetId in map:
+        return map[rulesetId]
+    else:
+        return None
+
+certification = {
+    'US' : 'FCC',
+    'CA' : 'ISED',
+}
 
 api = Api(
     app=afc_simulator_api_blueprint,
@@ -115,35 +160,39 @@ def get_min_maxpsd_by_bw(random_mask, chan, bw):
     else:
         return None
 
-def build_random_vector(difference_last_picks=False, only_power=False):
+def build_random_vector(req_cfi_bwX):
     global vectors
     global script_test_vector
     global random_picks
+    global difference_last_picks
+    global only_random_power
     random_mask = {}
     mask_bw40 = {}
     mask_bw80 = {}
     mask_bw160 = {}
+    mask_bw320 = {}
 
-    cfi_bw160 = [15, 47, 79, 143]
-    cfi_bw80 = [7, 23, 39, 55, 71, 87, 135, 151, 167]
-    cfi_bw40 = [3, 11, 19, 27, 35, 43, 51, 59, 67, 75, 83, 91, 123, 131, 139, 147, 155, 163, 171, 179]
-    chan_bw20 = [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 117, 121, 125, 129, 133, 137, 141, 145, 149, 153, 157, 161, 165, 169, 173, 177, 181]
+    cfi_bw320 = country_param[country_code][320]
+    cfi_bw160 = country_param[country_code][160]
+    cfi_bw80 = country_param[country_code][80]
+    cfi_bw40 = country_param[country_code][40]
+    chan_bw20 = country_param[country_code][20]
 
-    if not only_power:
+    if not only_random_power:
         Logger.log(LogCategory.DEBUG, "Randomize both channels and power level")
         if not difference_last_picks:
-            num_picks = random.randint(1, len(cfi_bw160) -1)  # Randomly choose the number of picks (at least one)
-            random_picks = random.sample(cfi_bw160, num_picks)  # Randomly select the CFIs
+            # num_picks = random.randint(1, len(req_cfi_bwX) -1)  # Randomly choose the number of picks (at least one)
+            num_picks = int(len(req_cfi_bwX)/2)
+            random_picks = random.sample(req_cfi_bwX, num_picks)  # Randomly select the CFIs
             random_picks.sort()
         else:
-            random_picks = list(set(cfi_bw160) - set(random_picks))
+            random_picks = list(set(req_cfi_bwX) - set(random_picks))
             random_picks.sort()
 
-        Logger.log(LogCategory.DEBUG, f"Randomized 160MHz channel picks {random_picks}")
+        Logger.log(LogCategory.DEBUG, f"Country Code {country_code} Randomized {channel_width}MHz channel picks {random_picks}")
         random_chan_bw20 = []
         for cfi in random_picks:
-            bw = 20
-            random_chan_bw20 += list(range(cfi-int(16-bw/10), cfi+int(16-bw/10)+1, int(bw/5)))
+            random_chan_bw20 += list(range(cfi-int(channel_width/10 - 2), cfi+int(channel_width/10 - 2)+1, 4))
     else:
         Logger.log(LogCategory.DEBUG, "Only randomize power level")
         random_chan_bw20 = chan_bw20.copy()
@@ -151,8 +200,8 @@ def build_random_vector(difference_last_picks=False, only_power=False):
     # when random_chan_bw20 is determined, randomize the power level
     for ch in random_chan_bw20:
         random_mask[ch] = {}
-        random_mask[ch]["maxPsd"] = psd = random.uniform(8, 22)
-        random_mask[ch]["maxEirp"] = psd + 10 * math.log10(20)
+        random_mask[ch]["maxPsd"] = psd = round(random.uniform(country_param[country_code]["psd_min"], country_param[country_code]["psd_max"]), 1)
+        random_mask[ch]["maxEirp"] = round(psd + 10 * math.log10(20), 1)
 
     Logger.log(LogCategory.DEBUG, "")
     Logger.log(LogCategory.DEBUG, f"Randomized 20MHz channel mask len({len(random_mask)}) {random_mask}")
@@ -162,7 +211,7 @@ def build_random_vector(difference_last_picks=False, only_power=False):
     for ch in cfi_bw40:
         psd = get_min_maxpsd_by_bw(random_mask, ch, bw)
         if psd:
-            eirp = psd + 10 * math.log10(bw)
+            eirp = round(psd + 10 * math.log10(bw), 1)
             mask_bw40[ch] = {}
             mask_bw40[ch]["maxEirp"] = 36.0 if eirp > 36.0 else eirp
     # bandwidth 80 MHz
@@ -170,7 +219,7 @@ def build_random_vector(difference_last_picks=False, only_power=False):
     for ch in cfi_bw80:
         psd = get_min_maxpsd_by_bw(random_mask, ch, bw)
         if psd:
-            eirp = psd + 10 * math.log10(bw)
+            eirp = round(psd + 10 * math.log10(bw), 1)
             mask_bw80[ch] = {}
             mask_bw80[ch]["maxEirp"] = 36.0 if eirp > 36.0 else eirp
     # bandwidth 160 MHz
@@ -178,9 +227,17 @@ def build_random_vector(difference_last_picks=False, only_power=False):
     for ch in cfi_bw160:
         psd = get_min_maxpsd_by_bw(random_mask, ch, bw)
         if psd:
-            eirp = psd + 10 * math.log10(bw)
+            eirp = round(psd + 10 * math.log10(bw), 1)
             mask_bw160[ch] = {}
             mask_bw160[ch]["maxEirp"] = 36.0 if eirp > 36.0 else eirp
+    # bandwidth 320 MHz
+    bw = 320
+    for ch in cfi_bw320:
+        psd = get_min_maxpsd_by_bw(random_mask, ch, bw)
+        if psd:
+            eirp = round(psd + 10 * math.log10(bw), 1)
+            mask_bw320[ch] = {}
+            mask_bw320[ch]["maxEirp"] = 36.0 if eirp > 36.0 else eirp
 
     Logger.log(LogCategory.DEBUG, "")
     Logger.log(LogCategory.DEBUG, f"40MHz CFI mask len({len(mask_bw40)}) {mask_bw40}")
@@ -255,8 +312,48 @@ def build_random_vector(difference_last_picks=False, only_power=False):
                         "globalOperatingClass": 134,
                         "maxEirp": maxEirp
                     })
+        # bandwidth 320 MHz
+        channelCfi = []
+        maxEirp = []
+        for ch, value in mask_bw320.items():
+            channelCfi.append(ch)
+            maxEirp.append(value["maxEirp"])
+        resp["availableChannelInfo"].append({
+                        "channelCfi": channelCfi,
+                        "globalOperatingClass": 137,
+                        "maxEirp": maxEirp
+                    })
 
     vectors["responses"]["availableSpectrumInquiryResponses"].append(resp)
+
+def get_cfi_by_inquired_channels_bw(channels, bw):
+    for chan in channels:
+        if chan["globalOperatingClass"] == chwdith_to_op_class[bw]:
+            cfi_chans = chan.get("channelCfi", country_param[country_code][bw])
+            return list(set(cfi_chans) & set(country_param[country_code][bw]))
+
+    return []
+
+def convert_to_ch(freq):
+    return int((freq - 5950) / 5)
+
+def get_cfi_by_inquired_freq_ranges_bw(freq_ranges, bw):
+    req_cfi_bw20 = []
+    req_cfi_bwX = []
+    for freq in freq_ranges:
+        for ch in range(convert_to_ch(freq["lowFrequency"]), convert_to_ch(freq["highFrequency"]) + 1):
+            if ch % 4 == 1:
+                req_cfi_bw20.append(ch)
+
+    for cfi in country_param[country_code][bw]:
+        bwX_ch_set = set()
+        for i in range(cfi-(int(bw/10)-2), cfi+(int(bw/10)-2)+1, 4):
+            bwX_ch_set.add(i)
+        if bwX_ch_set.issubset(set(req_cfi_bw20)):
+            req_cfi_bwX.append(cfi)
+
+    Logger.log(LogCategory.DEBUG,f'Country Code {country_code} req_cfi_bw20 {req_cfi_bw20} req_cfi_bwX({bw}MHz) {req_cfi_bwX}')
+    return req_cfi_bwX
 
 
 # API for DUT
@@ -318,9 +415,16 @@ class AvailableSpectrum(Resource):
             ruleset_ids = []
             if version == "1.4":
                 for certId in dev_desc['certificationId']:
-                    Logger.log(LogCategory.DEBUG, f"certificationId - rulesetId {certId['rulesetId']} id {certId['id']}")
-                    if isinstance(certId['rulesetId'], str):
-                        ruleset_ids.append(certId['rulesetId'])
+                    rulesetId = certId['rulesetId']
+                    Logger.log(LogCategory.DEBUG, f"certificationId - rulesetId {rulesetId} id {certId['id']}")
+                    if isinstance(rulesetId, str):
+                        if rulesetId_to_countrycode(rulesetId) == country_code:
+                            ruleset_ids.append(rulesetId)
+                        else:
+                            err_str = f"invalid rulesetId {rulesetId} for {certification[country_code]} AFC DUT test"
+                            Logger.log(LogCategory.ERROR, err_str)
+                            return Response(json.dumps(gen_err_resp(req_id, -1, err_str, version)),
+                                mimetype="application/json", status=200)
                     else:
                         Logger.log(LogCategory.ERROR, f'invalidParams rulesetId: DATA TYPE should be string')
                         return Response(json.dumps(gen_err_resp(req_id, 103, "One or more fields have an invalid value.", version, {"invalidParams": ["rulesetId"]})),
@@ -358,12 +462,23 @@ class AvailableSpectrum(Resource):
                                 mimetype="application/json", status=200)
 
             field = "inquiredChannels"
-            oper_class_list = []
+            oper_class_dict = {}
+            req_cfi_bwX = []
             if field in req:
-                oper_class_list = [item["globalOperatingClass"] for item in req[field]]
-                Logger.log(LogCategory.DEBUG, f'Inquired globalOperatingClass list {oper_class_list}')
-                if len(oper_class_list) > 0:
+                oper_class_dict = {item["globalOperatingClass"]: item["channelCfi"] if "channelCfi" in item else None for item in req[field]}
+                Logger.log(LogCategory.DEBUG, f'Inquired globalOperatingClass list {oper_class_dict}')
+                if len(oper_class_dict) > 0:
                     has_channel = True
+                    if channel_width == 320:
+                        req_cfi_bwX_by_chan = get_cfi_by_inquired_channels_bw(req[field], 320)
+                    elif channel_width == 160:
+                        req_cfi_bwX_by_chan = get_cfi_by_inquired_channels_bw(req[field], 160)
+                    else:
+                        req_cfi_bwX_by_chan = get_cfi_by_inquired_channels_bw(req[field], 80)
+
+                    if not req_cfi_bwX:
+                        req_cfi_bwX = req_cfi_bwX_by_chan
+
             field = "inquiredFrequencyRange"
             freq_range_list = []
             if field in req:
@@ -371,6 +486,16 @@ class AvailableSpectrum(Resource):
                 Logger.log(LogCategory.DEBUG, f'Inquired FrequencyRange list {freq_range_list}')
                 if len(freq_range_list) > 0:
                     has_freq_range = True
+                    if channel_width == 320:
+                        req_cfi_bwX_by_freq = get_cfi_by_inquired_freq_ranges_bw(req[field], 320)
+                    elif channel_width == 160:
+                        req_cfi_bwX_by_freq = get_cfi_by_inquired_freq_ranges_bw(req[field], 160)
+                    else:
+                        req_cfi_bwX_by_freq = get_cfi_by_inquired_freq_ranges_bw(req[field], 80)
+
+                    if not req_cfi_bwX or len(req_cfi_bwX_by_freq) < len(req_cfi_bwX):
+                        req_cfi_bwX = req_cfi_bwX_by_freq
+
         except KeyError as err:
             Logger.log(LogCategory.ERROR, f'Missing field {err} in received Available Spectrum Request')
             return Response(json.dumps(gen_err_resp(req_id, 102, "Missing Param.", version,
@@ -383,18 +508,36 @@ class AvailableSpectrum(Resource):
             return Response(json.dumps(gen_err_resp(req_id, -1, "General Failure", version)),
                                 mimetype="application/json", status=200)
 
-        if (script_test_vector == 1 or script_test_vector == 3) and not has_freq_range:
-            missing_field = "inquiredFrequencyRange"
-            Logger.log(LogCategory.ERROR, f'Missing field {missing_field} in received Available Spectrum Request')
-            return Response(json.dumps(gen_err_resp(req_id, 102, "Missing Param.", version,
-                                                    {"missingParams": [missing_field]})),
-                            mimetype="application/json", status=200)
-        if (script_test_vector == 2 or script_test_vector == 3) and not has_channel:
-            missing_field = "inquiredChannels"
-            Logger.log(LogCategory.ERROR, f'Missing field {missing_field} in received Available Spectrum Request')
-            return Response(json.dumps(gen_err_resp(req_id, 102, "Missing Param.", version,
-                                                    {"missingParams": [missing_field]})),
-                            mimetype="application/json", status=200)
+        if (script_test_vector == 1 or script_test_vector == 3):
+            if not has_freq_range:
+                missing_field = "inquiredFrequencyRange"
+                Logger.log(LogCategory.ERROR, f'Missing field {missing_field} in received Available Spectrum Request')
+                return Response(json.dumps(gen_err_resp(req_id, 102, "Missing Param.", version,
+                                                        {"missingParams": [missing_field]})),
+                                mimetype="application/json", status=200)
+            elif is_random:
+                if len(req_cfi_bwX_by_freq) < 2:
+                    err_msg = f'For testing purpose, frequencyRange should have at least two {channel_width}MHz channels. The inquired frequency ranges including {channel_width}MHz channels is {req_cfi_bwX_by_freq}'
+                    Logger.log(LogCategory.ERROR, err_msg)
+                    return Response(json.dumps(gen_err_resp(req_id, -1, err_msg, version)),
+                                        mimetype="application/json", status=200)
+
+        if (script_test_vector == 2 or script_test_vector == 3):
+            if not has_channel:
+                missing_field = "inquiredChannels"
+                Logger.log(LogCategory.ERROR, f'Missing field {missing_field} in received Available Spectrum Request')
+                return Response(json.dumps(gen_err_resp(req_id, 102, "Missing Param.", version,
+                                                        {"missingParams": [missing_field]})),
+                                mimetype="application/json", status=200)
+            elif is_random:
+                if len(req_cfi_bwX_by_chan) < 2: 
+                    err_msg = f'For testing purpose, global operating class {chwdith_to_op_class[channel_width]} should have at least two {channel_width}MHz channels. The inquired {channel_width}MHz channels is {req_cfi_bwX_by_chan}'
+                    Logger.log(LogCategory.ERROR, err_msg)
+                    return Response(json.dumps(gen_err_resp(req_id, -1, err_msg, version)),
+                                        mimetype="application/json", status=200)
+
+        if is_random and "responses" not in vectors:
+            build_random_vector(req_cfi_bwX)
 
         valid_request = True
 
@@ -414,10 +557,10 @@ class AvailableSpectrum(Resource):
                 if filename_prefix == "default":
                     filename = filename_prefix + ".json"
                 elif phase:
-                    filename = filename_prefix + vec + f"_phase{phase}.json"
+                    filename = f"{filename_prefix}_{vec}_phase{phase}.json"
                 else:
-                    filename = filename_prefix + vec + ".json"
-                test_case_file = os.path.join(json_dir_path, filename)
+                    filename = f"{filename_prefix}_{vec}.json"
+                test_case_file = os.path.join(json_dir_path, country_code, filename)
                 Logger.log(LogCategory.DEBUG, f'test vector file path: {test_case_file}')
                 if os.path.exists(test_case_file):
                     with open(test_case_file, "r") as f:
@@ -453,8 +596,24 @@ class AvailableSpectrum(Resource):
                     chan_info = resp[field]
                     resp[field] = []
                     for item in chan_info:
-                        if item["globalOperatingClass"] in oper_class_list:
-                            resp[field].append(item)
+                        if item["globalOperatingClass"] in oper_class_dict:
+                            resp_chans_list = item["channelCfi"]
+                            resp_chans_set = set(resp_chans_list)
+                            req_chans_list = oper_class_dict[item["globalOperatingClass"]]
+                            if req_chans_list:
+                                req_chans_set = set(req_chans_list)
+                                if req_chans_set & resp_chans_set:
+                                    overlay_chans = []
+                                    overlay_maxeirp = []
+                                    for idx, chan in enumerate(resp_chans_list):
+                                        if chan in req_chans_set:
+                                            overlay_chans.append(chan)
+                                            overlay_maxeirp.append(item["maxEirp"][idx])
+                                    item["channelCfi"] = overlay_chans
+                                    item["maxEirp"] = overlay_maxeirp
+                                    resp[field].append(item)
+                            else:
+                                resp[field].append(item)
 
                 field = "availableFrequencyInfo"
                 if field in resp:
@@ -498,6 +657,10 @@ class SetResponse(Resource):
         global hold_response
         global script_test_vector
         global is_random
+        global difference_last_picks
+        global only_random_power
+        global country_code
+        global channel_width
         tc = request.json
  
         Logger.log(LogCategory.DEBUG, f"/set-response: request {tc}")
@@ -514,7 +677,8 @@ class SetResponse(Resource):
             recv_request = {"headers": {}, "body": {}}
             sent_response = {}
             resp_wait_time = 0
-            filename_prefix = f'{tc["unitUnderTest"]}_{tc["purpose"]}_'
+            is_random = False
+            filename_prefix = f'{tc["unitUnderTest"]}_{tc["purpose"]}'
             script_test_vector = tc["testVector"]
             if "phase" in tc:
                 phase = tc["phase"]
@@ -524,6 +688,10 @@ class SetResponse(Resource):
             if "holdResponse" in tc:
                 hold_response = tc["holdResponse"]
                 Logger.log(LogCategory.DEBUG, f'holdResponse {hold_response}')
+            if "countryCode" in tc:
+                country_code = tc["countryCode"]
+            if "channelWidth" in tc:
+                channel_width = tc["channelWidth"]
             if "random" in tc and tc["random"]:
                 is_random = True
                 if "onlyRandomPower" in tc:
@@ -531,9 +699,9 @@ class SetResponse(Resource):
                 else:
                     only_random_power = False
                 if "difference_last_picks" in tc and tc["difference_last_picks"]:
-                    build_random_vector(difference_last_picks=True, only_power=only_random_power)
+                    difference_last_picks = True
                 else:
-                    build_random_vector(difference_last_picks=False, only_power=only_random_power)
+                    difference_last_picks = False
 
             response = {"message": "Success"}
             return Response(json.dumps(response), mimetype="application/json", status=200)
@@ -594,6 +762,9 @@ class SetResponse(Resource):
         global inquiry_file
         global valid_request
         global is_random
+        global difference_last_picks
+        global only_random_power
+        global channel_width
         vectors = {}
         recv_request = {"headers": {}, "body": {}}
         sent_response = {}
@@ -604,6 +775,9 @@ class SetResponse(Resource):
         hold_response = False
         valid_request = False
         is_random = False
+        difference_last_picks = False
+        only_random_power = False
+        channel_width = 80
 
         try:
             if request.json.get("inquiryFile"):

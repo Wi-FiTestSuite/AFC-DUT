@@ -82,6 +82,9 @@ class CT_AFC_SP_AP_AFCDUSA32_FrequencyChannel_10629_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         InstructionLib.send_script_status(
             "Step 6 : RF Test Equipment verification", 80

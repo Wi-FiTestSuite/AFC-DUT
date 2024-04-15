@@ -53,7 +53,7 @@ class CT_AFC_SP_AP_AFCDRSA31_Channel_160MHz_10621_1(AFCBaseScript):
         InstructionLib.append_measurements(
             "AFC_DUT_SP_OPERATION", sp_operation, measure_desc["AFC_DUT_SP_OPERATION"])
 
-        AFCLib.set_afc_response("RSA", test_vector=2, random=True)
+        AFCLib.set_afc_response("RSA", test_vector=2, random=True, channel_width=160)
 
         InstructionLib.send_script_status(
             "Step 3 : Send an Available Spectrum Inquiry Request", 20
@@ -82,6 +82,9 @@ class CT_AFC_SP_AP_AFCDRSA31_Channel_160MHz_10621_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_1", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         InstructionLib.send_script_status(
             "Step 6 : RF Test Equipment verification", 40
@@ -103,7 +106,7 @@ class CT_AFC_SP_AP_AFCDRSA31_Channel_160MHz_10621_1(AFCBaseScript):
         InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE_1", power_valid, self.power_valid_desc)
 
         ###################  phase 2  #####################
-        AFCLib.set_afc_response("RSA", test_vector=2, random=True, difference_last_picks=True)
+        AFCLib.set_afc_response("RSA", test_vector=2, random=True, difference_last_picks=True, channel_width=160)
         InstructionLib.send_script_status(
             "Step 7 : Trigger the AFC DUT to send to the AFC DUT Test Harness an Available Spectrum Inquiry Request", 50
         )
@@ -135,6 +138,9 @@ class CT_AFC_SP_AP_AFCDRSA31_Channel_160MHz_10621_1(AFCBaseScript):
 
         req_valid = super().verify_req_infor(afc_resp)
         InstructionLib.append_measurements("AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID_2", req_valid, measure_desc["AFC_DUT_SPECTRUM_INQUIRYREQUEST_VALID"])
+        if not req_valid:
+            InstructionLib.log_info("Invalid Spectrum Inquiry Request from AFC DUT, Stopping test execution.")
+            return
 
         InstructionLib.send_script_status(
             "Step 11 : RF Test Equipment verification", 90
@@ -152,7 +158,7 @@ class CT_AFC_SP_AP_AFCDRSA31_Channel_160MHz_10621_1(AFCBaseScript):
             InstructionLib.log_debug("Response: {}".format(resp.tlvs))
             op_channel = int(resp.tlvs.get(AFCResponseTLV.OPER_CHANNEL.value))
 
-        power_valid = super().validate_rf_measurement_by_chan(afc_resp["sentResponse"], op_channel, "rfMeasurementReport_step_6.json", op_bandwidth=160)
+        power_valid = super().validate_rf_measurement_by_chan(afc_resp["sentResponse"], op_channel, "rfMeasurementReport_step_11.json", op_bandwidth=160)
         InstructionLib.append_measurements("AFC_DUT_CONFORM_SPECTRUM_INQUIRYRESPONSE_2", power_valid, self.power_valid_desc)
 
 
