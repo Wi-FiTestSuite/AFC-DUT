@@ -38,9 +38,9 @@ class SpectrumAnalyzer:
     result_csv_file_name = None
     pcap_support = True
     # Sampling rate (MHz)
-    sampling_rate_mhz 	= 240
+    sampling_rate_mhz 	= 480
     # Capture length (ms). Maximum length is limited by sampling rate: 3350ms for 40MHz, 1675ms for 80MHz, 838ms for 160MHz, 559ms for 240MHz and 279ms for 480MHz
-    capture_ms  		= 500
+    capture_ms  		= 250
     uni_path_loss = True
 
     def __init__(self):

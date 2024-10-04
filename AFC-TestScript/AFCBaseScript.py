@@ -39,7 +39,7 @@ class AFCBaseScript(TestScript):
         self.power_valid_desc = "AFC DUT conforms to the conditons in the Spectrum Inquiry Response"
         self.afcd_country_code = InstructionLib.get_setting(SettingsName.AFCD_COUNTRY_CODE)
 
-    def setup(self, http_conf = "afc-https-default", stop_ocsp = False):
+    def setup(self, http_conf = "afc-https-default", stop_ocsp = False, is_320mhz = False):
         InstructionLib.afcd_operation({AFCParams.DEVICE_RESET.value: 1})
         # start ocsp server before web server !        
         if 'run-6' in http_conf:
@@ -68,10 +68,14 @@ class AFCBaseScript(TestScript):
         self.need_reg_conf = InstructionLib.get_setting(SettingsName.AFCD_NEED_REG_INFO)
         if self.need_reg_conf:
             self.geo_area = InstructionLib.get_setting(SettingsName.AFCD_GEOGRAPHIC_TYPE)
+            if is_320mhz:
+                op_class = "131 132 133 134 136 137"
+            else:
+                op_class = "131 132 133 134 136"
             reg_conf = AFCBaseScript.combine_configs(
                 AFCBaseScript.dev_desc_conf(afcd_country_code=self.afcd_country_code),
                 AFCBaseScript.location_conf(geo_area=self.geo_area, afcd_country_code=self.afcd_country_code),
-                AFCBaseScript.freq_channel_conf(afcd_country_code=self.afcd_country_code),
+                AFCBaseScript.freq_channel_conf(afcd_country_code=self.afcd_country_code, op_class=op_class),
                 AFCBaseScript.misc_conf()
             )
         else:
@@ -183,12 +187,14 @@ class AFCBaseScript(TestScript):
                 title)
         return power_valid
 
-    def validate_rf_measurement_by_freq(self, sent_resp, op_channel, rf_report_file, op_bandwidth=20):        
-        cfi = op_channel if op_bandwidth == 20 else self.get_cfi_from_op_channel(op_channel, op_bandwidth)
-        if cfi == 0:
-            InstructionLib.log_error(f"AFC DUT's operating channel {op_channel} is not correct primary 20 MHz channel")
-            return False, False
-
+    def validate_rf_measurement_by_freq(self, sent_resp, op_channel, rf_report_file, op_bandwidth=20, is_cfi=False):
+        if is_cfi:
+            cfi = op_channel
+        else:
+            cfi = op_channel if op_bandwidth == 20 else self.get_cfi_from_op_channel(op_channel, op_bandwidth)
+            if cfi == 0:
+                InstructionLib.log_error(f"AFC DUT's operating channel {op_channel} is not correct primary 20 MHz channel")
+                return False, False
         op_freq = int(5950 + cfi*5)
         sp_limit_psd = RfMeasurementValidation(sent_resp , {}).get_sp_limit_by_freq(op_freq, op_bandwidth)
 
@@ -225,11 +231,14 @@ class AFCBaseScript(TestScript):
 
         return power_valid, adjacent_valid
 
-    def validate_rf_measurement_by_chan(self, sent_resp, op_channel, rf_report_file, op_bandwidth=20):
-        cfi = op_channel if op_bandwidth == 20 else self.get_cfi_from_op_channel(op_channel, op_bandwidth)
-        if cfi == 0:
-            InstructionLib.log_error(f"DUT's operating channel {op_channel} is not correct primary 20 MHz channel")
-            return False
+    def validate_rf_measurement_by_chan(self, sent_resp, op_channel, rf_report_file, op_bandwidth=20, is_cfi=False):
+        if is_cfi:
+            cfi = op_channel
+        else:
+            cfi = op_channel if op_bandwidth == 20 else self.get_cfi_from_op_channel(op_channel, op_bandwidth)
+            if cfi == 0:
+                InstructionLib.log_error(f"DUT's operating channel {op_channel} is not correct primary 20 MHz channel")
+                return False
         op_freq = int(5950 + cfi*5)
         sp_limit_eirp = RfMeasurementValidation(sent_resp , {}).get_sp_limit_by_chan(cfi)
 
@@ -266,11 +275,14 @@ class AFCBaseScript(TestScript):
 
         return power_valid
 
-    def validate_rf_measurement_by_both(self, sent_resp, op_channel, rf_report_file, op_bandwidth=20):
-        cfi = op_channel if op_bandwidth == 20 else self.get_cfi_from_op_channel(op_channel, op_bandwidth)
-        if cfi == 0:
-            InstructionLib.log_error(f"DUT's operating channel {op_channel} is not correct primary 20 MHz channel")
-            return False, False
+    def validate_rf_measurement_by_both(self, sent_resp, op_channel, rf_report_file, op_bandwidth=20, is_cfi=False):
+        if is_cfi:
+            cfi = op_channel
+        else:
+            cfi = op_channel if op_bandwidth == 20 else self.get_cfi_from_op_channel(op_channel, op_bandwidth)
+            if cfi == 0:
+                InstructionLib.log_error(f"DUT's operating channel {op_channel} is not correct primary 20 MHz channel")
+                return False, False
         op_freq = int(5950 + cfi*5)
         sp_limit_psd,  sp_limit_eirp = RfMeasurementValidation(sent_resp , {}).get_sp_limit_by_both(cfi, op_bandwidth)
 
@@ -500,7 +512,8 @@ class AFCBaseScript(TestScript):
         cfi_bw = { 
             40: (3, 11, 19, 27, 35, 43, 51, 59, 67, 75, 83, 91, 99, 107, 115, 123, 131, 139, 147, 155, 163, 171, 179, 187, 195, 203, 211, 219, 227),
             80: (7, 23, 39, 55, 71, 87, 103, 119, 135, 151, 167, 183, 199, 215),
-           160: (15, 47, 79, 111, 143, 175, 207)
+           160: (15, 47, 79, 111, 143, 175, 207),
+           320: (31, 63, 95, 127)
         }
         if (op_channel % 4) != 1:
             return 0
@@ -522,8 +535,10 @@ class AFCBaseScript(TestScript):
                     continue
                 json_object = json.dumps(report, indent=4)
                 if len(report_json) > 1:
-                    file_name = f"[{index}]{file_name}.json"
-                with open(os.path.join(InstructionLib.get_current_testcase_log_dir(), file_name), "w") as f:
+                    report_file = f"[{index}]{file_name}"
+                else:
+                    report_file = file_name
+                with open(os.path.join(InstructionLib.get_current_testcase_log_dir(), report_file), "w") as f:
                     f.write(json_object)
         else:
             raise ValueError("Invalid report_json type. Expected dictionary or list of dictionaries.")

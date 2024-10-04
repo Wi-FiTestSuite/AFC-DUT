@@ -182,11 +182,17 @@ def build_random_vector(req_cfi_bwX):
         Logger.log(LogCategory.DEBUG, "Randomize both channels and power level")
         if not difference_last_picks:
             # num_picks = random.randint(1, len(req_cfi_bwX) -1)  # Randomly choose the number of picks (at least one)
-            num_picks = int(len(req_cfi_bwX)/2)
-            random_picks = random.sample(req_cfi_bwX, num_picks)  # Randomly select the CFIs
+            if len(req_cfi_bwX) >= 2:
+                num_picks = int(len(req_cfi_bwX)/2)
+                random_picks = random.sample(req_cfi_bwX, num_picks)  # Randomly select the CFIs
+            else:
+                random_picks = req_cfi_bwX
             random_picks.sort()
         else:
-            random_picks = list(set(req_cfi_bwX) - set(random_picks))
+            if len(req_cfi_bwX) >= 2:
+                random_picks = list(set(req_cfi_bwX) - set(random_picks))
+            else:
+                random_picks = req_cfi_bwX
             random_picks.sort()
 
         Logger.log(LogCategory.DEBUG, f"Country Code {country_code} Randomized {channel_width}MHz channel picks {random_picks}")
@@ -200,7 +206,15 @@ def build_random_vector(req_cfi_bwX):
     # when random_chan_bw20 is determined, randomize the power level
     for ch in random_chan_bw20:
         random_mask[ch] = {}
-        random_mask[ch]["maxPsd"] = psd = round(random.uniform(country_param[country_code]["psd_min"], country_param[country_code]["psd_max"]), 1)
+        if channel_width == 320:
+            if not difference_last_picks:
+                min_psd = random.uniform(5, 15)
+                random_mask[ch]["maxPsd"] = psd = round(random.uniform(min_psd, min_psd + 10), 1)
+            else:
+                min_psd = random.uniform(-5, 5)
+                random_mask[ch]["maxPsd"] = psd = round(random.uniform(min_psd, min_psd + 10), 1)
+        else:
+            random_mask[ch]["maxPsd"] = psd = round(random.uniform(country_param[country_code]["psd_min"], country_param[country_code]["psd_max"]), 1)
         random_mask[ch]["maxEirp"] = round(psd + 10 * math.log10(20), 1)
 
     Logger.log(LogCategory.DEBUG, "")
@@ -516,8 +530,13 @@ class AvailableSpectrum(Resource):
                                                         {"missingParams": [missing_field]})),
                                 mimetype="application/json", status=200)
             elif is_random:
-                if len(req_cfi_bwX_by_freq) < 2:
+                if len(req_cfi_bwX_by_freq) < 2 and (channel_width != 320):
                     err_msg = f'For testing purpose, frequencyRange should have at least two {channel_width}MHz channels. The inquired frequency ranges including {channel_width}MHz channels is {req_cfi_bwX_by_freq}'
+                    Logger.log(LogCategory.ERROR, err_msg)
+                    return Response(json.dumps(gen_err_resp(req_id, -1, err_msg, version)),
+                                        mimetype="application/json", status=200)
+                elif len(req_cfi_bwX_by_freq) < 1 and (channel_width == 320):
+                    err_msg = f'For testing purpose, frequencyRange should have at least one {channel_width}MHz channels. The inquired frequency ranges including {channel_width}MHz channels is {req_cfi_bwX_by_freq}'
                     Logger.log(LogCategory.ERROR, err_msg)
                     return Response(json.dumps(gen_err_resp(req_id, -1, err_msg, version)),
                                         mimetype="application/json", status=200)
@@ -530,8 +549,13 @@ class AvailableSpectrum(Resource):
                                                         {"missingParams": [missing_field]})),
                                 mimetype="application/json", status=200)
             elif is_random:
-                if len(req_cfi_bwX_by_chan) < 2: 
+                if len(req_cfi_bwX_by_chan) < 2 and (channel_width != 320):
                     err_msg = f'For testing purpose, global operating class {chwdith_to_op_class[channel_width]} should have at least two {channel_width}MHz channels. The inquired {channel_width}MHz channels is {req_cfi_bwX_by_chan}'
+                    Logger.log(LogCategory.ERROR, err_msg)
+                    return Response(json.dumps(gen_err_resp(req_id, -1, err_msg, version)),
+                                        mimetype="application/json", status=200)
+                elif len(req_cfi_bwX_by_chan) < 1 and (channel_width == 320):
+                    err_msg = f'For testing purpose, global operating class {chwdith_to_op_class[channel_width]} should have at least one {channel_width}MHz channels. The inquired {channel_width}MHz channels is {req_cfi_bwX_by_chan}'
                     Logger.log(LogCategory.ERROR, err_msg)
                     return Response(json.dumps(gen_err_resp(req_id, -1, err_msg, version)),
                                         mimetype="application/json", status=200)

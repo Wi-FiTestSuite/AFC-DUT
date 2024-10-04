@@ -180,3 +180,7 @@ class AFCResponseTLV(int, Enum):
     ## @brief Current operating channel
     #  @note TLV Length: Variable, Value: Numeric value
     OPER_CHANNEL = 0xBC01
+
+    ## @brief Current Center Frequency Index
+    #  @note TLV Length: Variable, Value: Numeric value
+    CENTER_FREQ_INDEX = 0xBC02

@@ -348,6 +348,7 @@ struct indigo_api {
 /* AFC Response TLV */
 #define TLV_AFC_OPER_FREQ                       0xbc00
 #define TLV_AFC_OPER_CHANNEL                    0xbc01
+#define TLV_AFC_CENTER_FREQ_INDEX               0xbc02
 
 /* TLV Value */
 #define DUT_TYPE_STAUT                          0x01

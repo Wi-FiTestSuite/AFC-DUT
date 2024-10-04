@@ -59,12 +59,13 @@ static int get_control_app_handler(struct packet_wrapper *req, struct packet_wra
 
 static int afcd_get_info_handler(struct packet_wrapper *req, struct packet_wrapper *resp) {
     struct tlv_hdr *tlv;
-    int freq , channel;
+    int freq , channel, cfi = 0;
     char response[S_BUFFER_LEN];
 
     memset(response, 0, sizeof(response));
-    /* Get current center channel */
+    /* Vendor implementation: Get current center channel and Center Frequency Index */
     channel = 39;
+    cfi = 31;
     freq = 5950 + 5*channel;
 
     fill_wrapper_message_hdr(resp, API_CMD_RESPONSE, req->hdr.seq);
@@ -74,6 +75,8 @@ static int afcd_get_info_handler(struct packet_wrapper *req, struct packet_wrapp
     fill_wrapper_tlv_bytes(resp, TLV_AFC_OPER_FREQ, strlen(response), response);
     snprintf(response, sizeof(response), "%d", channel);
     fill_wrapper_tlv_bytes(resp, TLV_AFC_OPER_CHANNEL, strlen(response), response);
+    snprintf(response, sizeof(response), "%d", cfi);
+    fill_wrapper_tlv_bytes(resp, TLV_AFC_CENTER_FREQ_INDEX, strlen(response), response);        
     return 0;
 }
 
